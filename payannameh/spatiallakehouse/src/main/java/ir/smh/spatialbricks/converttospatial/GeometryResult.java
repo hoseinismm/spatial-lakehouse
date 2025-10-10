@@ -5,6 +5,7 @@ import org.locationtech.jts.geom.Envelope;
 import org.apache.spark.sql.catalyst.expressions.GenericRowWithSchema;
 import org.apache.spark.sql.types.StructType;
 import java.util.Map;
+import ch.hsr.geohash.GeoHash;
 
 public class GeometryResult {
     public Geometry geometry; // شیء JTS
@@ -82,4 +83,18 @@ public class GeometryResult {
         }
         return null;
     }
+
+
+
+    public String computeGeoHash() {
+        if (geometry != null) {
+            Point centroid = geometry.getCentroid();
+            double lat = centroid.getY();
+            double lon = centroid.getX();
+            GeoHash hash = GeoHash.withCharacterPrecision(lat, lon, 6);
+            return hash.toBase32();
+        }
+        return null;
+    }
+
 }

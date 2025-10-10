@@ -48,12 +48,27 @@ public class UDFRegistry {
             fields.add(DataTypes.createStructField("startpoint", coordType, true));
         if (options.has("endpoint"))
             fields.add(DataTypes.createStructField("endpoint", coordType, true));
+        if (options.has("geohash")) {
+            fields.add(DataTypes.createStructField("geohash", DataTypes.StringType, true));
+        }
 
         StructType geometryType = new StructType(fields.toArray(new StructField[0]));
 
-        UDF1<String, Row> stringToGeometry = (String SpatialData) -> {
+        UDF1<Object, Row> stringOrGeomToGeometry = (Object input) -> {
             try {
-                Geometry geometry = adapter.inputToGeometry(SpatialData);
+                if (input == null) return null;
+
+                Geometry geometry;
+
+                // تشخیص نوع ورودی
+                if (input instanceof Geometry) {
+                    geometry = (Geometry) input;
+                } else if (input instanceof String) {
+                    geometry = adapter.inputToGeometry((String) input);
+                } else {
+                    throw new IllegalArgumentException("Unsupported input type: " + input.getClass());
+                }
+
                 GeometryResult result = ParseGeometry.parseGeometry(geometry);
                 Map<String, Object> geom = result.geomMap;
                 int type = (int) geom.get("type");
@@ -61,14 +76,11 @@ public class UDFRegistry {
                 List<List<Map<String, Object>>> partsList = (List<List<Map<String, Object>>>) geom.get("part");
 
                 List<Row> partRows = new ArrayList<>();
-
-
                 for (List<Map<String, Object>> part : partsList) {
                     List<Row> coordRows = new ArrayList<>();
                     for (Map<String, Object> c : part) {
                         double x = (double) c.get("x");
                         double y = (double) c.get("y");
-
                         coordRows.add(new GenericRowWithSchema(new Object[]{x, y}, coordType));
                     }
                     partRows.add(new GenericRowWithSchema(new Object[]{coordRows}, partType));
@@ -86,17 +98,21 @@ public class UDFRegistry {
                     values.add(result.computeArea());
                 if (options.has("startpoint"))
                     values.add(result.computeStartPointRow(coordType));
-                if (options.has("endpoint")) {
+                if (options.has("endpoint"))
                     values.add(result.computeEndPointRow(coordType));
-                }
+                if (options.has("geohash"))
+                    values.add(result.computeGeoHash());
 
                 return new GenericRowWithSchema(values.toArray(), geometryType);
+
             } catch (Exception e) {
                 e.printStackTrace();
                 return null;
             }
         };
 
-        spark.udf().register("stringToGeometry", stringToGeometry, geometryType);
+// ثبت UDF
+        spark.udf().register("stringToGeometry", stringOrGeomToGeometry, geometryType);
+
     }
 }

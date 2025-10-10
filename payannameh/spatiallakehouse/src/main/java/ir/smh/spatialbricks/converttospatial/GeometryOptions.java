@@ -1,8 +1,9 @@
 package ir.smh.spatialbricks.converttospatial;
 
+import java.io.Serializable;
 import java.util.Set;
 
-public class GeometryOptions {
+public class GeometryOptions implements Serializable {
     private final Set<String> features;
 
     public GeometryOptions(Set<String> features) {

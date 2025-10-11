@@ -11,10 +11,8 @@ import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SparkSession;
 import org.apache.spark.sql.catalyst.analysis.NoSuchTableException;
-
-
 import java.io.Serializable;
-
+import java.util.Arrays;
 import static org.apache.spark.sql.functions.*;
 
 public class SpatialETL implements Serializable {
@@ -38,7 +36,7 @@ public class SpatialETL implements Serializable {
 
         // ایجاد جدول برنزی
 
-        if ((inputPath.endsWith(".json"))||inputPath.endsWith(".geojson")) {
+        if ((inputPath.toLowerCase().endsWith(".json"))||inputPath.toLowerCase().endsWith(".geojson")) {
             df = Adapter.toDf(GeoJsonReader.readToGeometryRDD(jsc, inputPath), spark);
             Dataset<Row> dfGeoJson = df.withColumn(
                     "geometry",
@@ -47,11 +45,11 @@ public class SpatialETL implements Serializable {
 
             IcebergTableCreator.createIcebergTableFromSchema(spark, dfGeoJson.schema(), bronze.database(), bronze.table());
             dfGeoJson.writeTo(bronze.database() + "." + bronze.table()).append();
-        } else if (inputPath.endsWith(".parquet")) {
+        } else if (inputPath.toLowerCase().endsWith(".parquet")) {
             df = spark.read().parquet(inputPath);
             IcebergTableCreator.createIcebergTableFromSchema(spark, df.schema(), bronze.database(), bronze.table());
             df.writeTo(bronze.database() + "." + bronze.table()).append();
-        } else if (inputPath.endsWith(".csv")) {
+        } else if (inputPath.toLowerCase().endsWith(".csv")) {
             df = spark.read().csv(inputPath);
             df.writeTo(bronze.database() + "." + bronze.table()).append();
         } else {
@@ -60,7 +58,18 @@ public class SpatialETL implements Serializable {
 
         // ثبت UDF و تبدیل
         UDFRegistry.registerAll(spark, options, adapter);
-        Dataset<Row> transformed = df.withColumn("geometry", callUDF("stringOrGeomToGeometry", df.col("geometry")));
+
+        // پیدا کردن نام واقعی ستون با ignore case
+        String geomCol = Arrays.stream(df.columns())
+                .filter(c -> c.equalsIgnoreCase("geometry"))
+                .findFirst()
+                .orElseThrow(() -> new RuntimeException("No geometry column found"));
+
+        Dataset<Row> transformed = df.withColumn(
+                geomCol,
+                callUDF("stringOrGeomToGeometry", df.col(geomCol))
+        );
+
 
         // ایجاد جدول نقره‌ای
         IcebergTableCreator.createIcebergTableFromSchema(spark, transformed.schema(), silver.database(), silver.table());

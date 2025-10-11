@@ -5,8 +5,9 @@ import org.locationtech.jts.geom.Geometry;
 import org.locationtech.jts.geom.GeometryFactory;
 import org.locationtech.jts.geom.PrecisionModel;
 import org.locationtech.jts.io.geojson.GeoJsonReader;
+import java.io.Serializable;
 
-public class geoJsonReaderAdapter implements GeometryReader<String> {
+public class geoJsonReaderAdapter implements GeometryReader<String>, Serializable {
     private static final GeometryFactory geometryFactory = new GeometryFactory(
             new PrecisionModel(PrecisionModel.FLOATING_SINGLE), 4326
     );

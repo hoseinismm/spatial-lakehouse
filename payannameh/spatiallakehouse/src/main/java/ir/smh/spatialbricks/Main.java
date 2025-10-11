@@ -8,18 +8,15 @@ import org.apache.sedona.spark.SedonaContext;
 import org.apache.spark.sql.catalyst.analysis.NoSuchTableException;
 import org.locationtech.jts.geom.Geometry;
 
-
-
 public class Main {
     public static void main(String[] args) throws NoSuchTableException {
 
         var spark = SparkConfig.createSession("../datasets/newyork");
         SedonaContext.create(spark);
 
-
         GeometryOptions options = GeometryOptions.of("geohash");
 
-        GeometryReader<Geometry> adapter = new geoJsonGeometricalAdapter();
+        GeometryReader<?> adapter = new geoJsonGeometricalAdapter();
 
         SpatialETL etl = new SpatialETL(spark, options, adapter);
 

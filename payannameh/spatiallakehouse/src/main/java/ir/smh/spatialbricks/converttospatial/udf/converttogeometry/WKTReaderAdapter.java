@@ -6,7 +6,9 @@ import org.locationtech.jts.geom.GeometryFactory;
 import org.locationtech.jts.geom.PrecisionModel;
 import org.locationtech.jts.io.WKTReader;
 
-public class WKTReaderAdapter implements GeometryReader<String> {
+import java.io.Serializable;
+
+public class WKTReaderAdapter implements GeometryReader<String>, Serializable {
     private static final GeometryFactory geometryFactory = new GeometryFactory(
             new PrecisionModel(PrecisionModel.FLOATING_SINGLE), 4326
     );

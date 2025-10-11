@@ -3,13 +3,16 @@ package ir.smh.spatialbricks.converttospatial.udf;
 import ir.smh.spatialbricks.converttospatial.GeometryResult;
 import ir.smh.spatialbricks.converttospatial.GeometryOptions;
 import ir.smh.spatialbricks.converttospatial.GeometryReader;
+import ir.smh.spatialbricks.converttospatial.udf.converttogeometry.WKBReaderAdapter;
+import ir.smh.spatialbricks.converttospatial.udf.converttogeometry.WKTReaderAdapter;
+import ir.smh.spatialbricks.converttospatial.udf.converttogeometry.geoJsonGeometricalAdapter;
+import ir.smh.spatialbricks.converttospatial.udf.converttogeometry.geoJsonReaderAdapter;
 import org.apache.spark.sql.SparkSession;
 import org.apache.spark.sql.api.java.UDF1;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.catalyst.expressions.GenericRowWithSchema;
 import org.apache.spark.sql.types.*;
 import org.locationtech.jts.geom.Geometry;
-
 import java.util.*;
 
 
@@ -56,20 +59,24 @@ public class UDFRegistry {
 
         UDF1<Object, Row> stringOrGeomToGeometry = (Object input) -> {
             try {
-                if (input == null) return null;
 
-                Geometry geometry;
+            Geometry geometry;
 
-                // تشخیص نوع ورودی
-                if (input instanceof Geometry) {
-                    geometry = (Geometry) input;
-                } else if (input instanceof String) {
-                    geometry = adapter.inputToGeometry((String) input);
-                } else {
-                    throw new IllegalArgumentException("Unsupported input type: " + input.getClass());
-                }
+            if (input instanceof byte[] && adapter instanceof WKBReaderAdapter) {
+                geometry = ((WKBReaderAdapter) adapter).inputToGeometry((byte[]) input);
+            } else if (input instanceof String && adapter instanceof WKTReaderAdapter) {
+                geometry = ((WKTReaderAdapter) adapter).inputToGeometry((String) input);
+            } else if (input instanceof Geometry && adapter instanceof geoJsonGeometricalAdapter) {
+                geometry = ((geoJsonGeometricalAdapter) adapter).inputToGeometry((Geometry) input);
+            } else if (input instanceof String && adapter instanceof geoJsonReaderAdapter) {
+                geometry = ((geoJsonReaderAdapter) adapter).inputToGeometry((String) input);
+            } else {
+                throw new IllegalArgumentException("Unsupported input type: " + input.getClass());
+            }
 
-                GeometryResult result = ParseGeometry.parseGeometry(geometry);
+
+
+            GeometryResult result = ParseGeometry.parseGeometry(geometry);
                 Map<String, Object> geom = result.geomMap;
                 int type = (int) geom.get("type");
                 @SuppressWarnings("unchecked")
@@ -106,12 +113,12 @@ public class UDFRegistry {
                 return new GenericRowWithSchema(values.toArray(), geometryType);
 
             } catch (Exception e) {
-                e.printStackTrace();
-                return null;
+                throw new RuntimeException(e);
             }
+
         };
 
-// ثبت UDF
+        // ثبت UDF
         spark.udf().register("stringToGeometry", stringOrGeomToGeometry, geometryType);
 
     }

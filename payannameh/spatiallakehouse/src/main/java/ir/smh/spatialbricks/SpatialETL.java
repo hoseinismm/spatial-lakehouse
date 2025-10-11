@@ -10,21 +10,20 @@ import org.apache.spark.api.java.JavaSparkContext;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SparkSession;
-import static org.apache.spark.sql.functions.expr;
 import org.apache.spark.sql.catalyst.analysis.NoSuchTableException;
-import org.locationtech.jts.geom.Geometry;
+
 
 import java.io.Serializable;
 
-import static org.apache.spark.sql.functions.callUDF;
+import static org.apache.spark.sql.functions.*;
 
 public class SpatialETL implements Serializable {
 
     private final SparkSession spark;
     private final GeometryOptions options;
-    private final GeometryReader<Geometry> adapter;
+    private final GeometryReader<?> adapter;
 
-    public SpatialETL(SparkSession spark, GeometryOptions options, GeometryReader<Geometry> adapter) {
+    public SpatialETL(SparkSession spark, GeometryOptions options, GeometryReader<?> adapter) {
         this.spark = spark;
         this.options = options;
         this.adapter = adapter;
@@ -33,19 +32,29 @@ public class SpatialETL implements Serializable {
     public void processFile(TableSpec bronze, TableSpec silver, String inputPath) throws NoSuchTableException {
 
 
-         JavaSparkContext jsc = JavaSparkContext.fromSparkContext(spark.sparkContext());
+        JavaSparkContext jsc = JavaSparkContext.fromSparkContext(spark.sparkContext());
 
-         Dataset<Row> df = Adapter.toDf(GeoJsonReader.readToGeometryRDD(jsc, inputPath),spark);
-
-         Dataset<Row> dfGeoJson = df.withColumn("geometry_json", expr("ST_AsGeoJSON(geometry)")).drop("geometry");
+        Dataset<Row> df = null;
 
         // ایجاد جدول برنزی
-        IcebergTableCreator.createIcebergTableFromSchema(spark, dfGeoJson.schema(), bronze.database(), bronze.table());
-        dfGeoJson.writeTo(bronze.database() + "." + bronze.table()).append();
+
+        if ((inputPath.endsWith(".json"))||inputPath.endsWith(".geojson")) {
+            df = Adapter.toDf(GeoJsonReader.readToGeometryRDD(jsc, inputPath), spark);
+            Dataset<Row> dfGeoJson = df.withColumn("geometry_json", expr("ST_AsGeoJSON(geometry)")).drop("geometry");
+            IcebergTableCreator.createIcebergTableFromSchema(spark, dfGeoJson.schema(), bronze.database(), bronze.table());
+            dfGeoJson.writeTo(bronze.database() + "." + bronze.table()).append();
+        } else if (inputPath.endsWith(".parquet")) {
+            df = spark.read().parquet(inputPath);
+            IcebergTableCreator.createIcebergTableFromSchema(spark, df.schema(), bronze.database(), bronze.table());
+            df.writeTo(bronze.database() + "." + bronze.table()).append();
+        } else if (inputPath.endsWith(".csv")) {
+            df = spark.read().csv(inputPath);
+            df.writeTo(bronze.database() + "." + bronze.table()).append();
+        }
 
         // ثبت UDF و تبدیل
         UDFRegistry.registerAll(spark, options, adapter);
-        Dataset<Row> transformed = df.withColumn("spatiallakehouse", callUDF("stringToGeometry", df.col("geometry"))).drop("geometry");
+        Dataset<Row> transformed = df.withColumn("geometry", callUDF("stringOrGeomToGeometry", df.col("geometry"))).drop("geometry");
 
         // ایجاد جدول نقره‌ای
         IcebergTableCreator.createIcebergTableFromSchema(spark, transformed.schema(), silver.database(), silver.table());

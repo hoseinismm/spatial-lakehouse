@@ -4,7 +4,9 @@ import ir.smh.spatialbricks.converttospatial.GeometryReader;
 import org.locationtech.jts.geom.Geometry;
 import org.locationtech.jts.io.WKBReader;
 
-public class WKBReaderAdapter implements GeometryReader<byte[]> {
+import java.io.Serializable;
+
+public class WKBReaderAdapter implements GeometryReader<byte[]>, Serializable {
 
     @Override
     public Geometry inputToGeometry(byte[] input) throws Exception {

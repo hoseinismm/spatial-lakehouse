@@ -113,13 +113,14 @@ public class UDFRegistry {
                 return new GenericRowWithSchema(values.toArray(), geometryType);
 
             } catch (Exception e) {
-                throw new RuntimeException(e);
+                // خطا رخ داد → مقدار null برگردان
+                e.printStackTrace();
+                return null;
             }
-
         };
 
         // ثبت UDF
-        spark.udf().register("stringToGeometry", stringOrGeomToGeometry, geometryType);
+        spark.udf().register("stringOrGeomToGeometry", stringOrGeomToGeometry, geometryType);
 
     }
 }

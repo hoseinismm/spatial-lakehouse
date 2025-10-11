@@ -3,7 +3,7 @@ package ir.smh.spatialbricks;
 import ir.smh.spatialbricks.converttospatial.GeometryOptions;
 import ir.smh.spatialbricks.converttospatial.GeometryReader;
 import ir.smh.spatialbricks.converttospatial.udf.UDFRegistry;
-import  ir.smh.spatialbricks.createsql.IcebergTableCreator;
+import ir.smh.spatialbricks.createsql.IcebergTableCreator;
 import org.apache.sedona.core.formatMapper.GeoJsonReader;
 import org.apache.sedona.sql.utils.Adapter;
 import org.apache.spark.api.java.JavaSparkContext;
@@ -40,7 +40,11 @@ public class SpatialETL implements Serializable {
 
         if ((inputPath.endsWith(".json"))||inputPath.endsWith(".geojson")) {
             df = Adapter.toDf(GeoJsonReader.readToGeometryRDD(jsc, inputPath), spark);
-            Dataset<Row> dfGeoJson = df.withColumn("geometry_json", expr("ST_AsGeoJSON(geometry)")).drop("geometry");
+            Dataset<Row> dfGeoJson = df.withColumn(
+                    "geometry",
+                    expr("ST_AsGeoJSON(geometry)")
+            );
+
             IcebergTableCreator.createIcebergTableFromSchema(spark, dfGeoJson.schema(), bronze.database(), bronze.table());
             dfGeoJson.writeTo(bronze.database() + "." + bronze.table()).append();
         } else if (inputPath.endsWith(".parquet")) {
@@ -50,14 +54,17 @@ public class SpatialETL implements Serializable {
         } else if (inputPath.endsWith(".csv")) {
             df = spark.read().csv(inputPath);
             df.writeTo(bronze.database() + "." + bronze.table()).append();
+        } else {
+            throw new IllegalArgumentException("Unsupported file format: " + inputPath);
         }
 
         // ثبت UDF و تبدیل
         UDFRegistry.registerAll(spark, options, adapter);
-        Dataset<Row> transformed = df.withColumn("geometry", callUDF("stringOrGeomToGeometry", df.col("geometry"))).drop("geometry");
+        Dataset<Row> transformed = df.withColumn("geometry", callUDF("stringOrGeomToGeometry", df.col("geometry")));
 
         // ایجاد جدول نقره‌ای
         IcebergTableCreator.createIcebergTableFromSchema(spark, transformed.schema(), silver.database(), silver.table());
+        transformed = transformed.filter(col("geometry").isNotNull());
         transformed.writeTo(silver.database() + "." + silver.table()).append();
     }
 }

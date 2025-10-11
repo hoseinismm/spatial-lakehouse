@@ -6,7 +6,7 @@ import ir.smh.spatialbricks.converttospatial.GeometryReader;
 import ir.smh.spatialbricks.converttospatial.udf.converttogeometry.geoJsonGeometricalAdapter;
 import org.apache.sedona.spark.SedonaContext;
 import org.apache.spark.sql.catalyst.analysis.NoSuchTableException;
-import org.locationtech.jts.geom.Geometry;
+
 
 public class Main {
     public static void main(String[] args) throws NoSuchTableException {

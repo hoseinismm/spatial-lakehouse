@@ -2,8 +2,6 @@ package ir.smh.spatialbricks.createsql;
 
 import org.apache.spark.sql.SparkSession;
 import org.apache.spark.sql.types.*;
-import org.apache.spark.sql.Dataset;
-import org.apache.spark.sql.Row;
 import java.io.Serializable;
 
 public class IcebergTableCreator implements Serializable {

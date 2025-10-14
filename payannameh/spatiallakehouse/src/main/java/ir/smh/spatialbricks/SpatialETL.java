@@ -2,17 +2,29 @@ package ir.smh.spatialbricks;
 
 import ir.smh.spatialbricks.converttospatial.GeometryOptions;
 import ir.smh.spatialbricks.converttospatial.GeometryReader;
+import ir.smh.spatialbricks.converttospatial.udf.GeohashToLongUdfRegistry;
+import ir.smh.spatialbricks.converttospatial.udf.MinInBucketUdfRegistry;
 import ir.smh.spatialbricks.converttospatial.udf.UDFRegistry;
 import ir.smh.spatialbricks.createsql.IcebergTableCreator;
+import ir.smh.spatialbricks.createsql.IcebergTableCreatorWithPartitioning;
+import org.apache.iceberg.PartitionSpec;
+import org.apache.iceberg.Schema;
+import org.apache.iceberg.spark.SparkSchemaUtil;
 import org.apache.sedona.core.formatMapper.GeoJsonReader;
 import org.apache.sedona.sql.utils.Adapter;
 import org.apache.spark.api.java.JavaSparkContext;
-import org.apache.spark.sql.Dataset;
-import org.apache.spark.sql.Row;
-import org.apache.spark.sql.SparkSession;
+import org.apache.spark.sql.*;
 import org.apache.spark.sql.catalyst.analysis.NoSuchTableException;
+import scala.collection.JavaConverters;
+import scala.collection.immutable.Seq;
+
+import static org.apache.spark.sql.functions.col;
+
 import java.io.Serializable;
 import java.util.Arrays;
+import java.util.List;
+import java.util.stream.Collectors;
+
 import static org.apache.spark.sql.functions.*;
 
 public class SpatialETL implements Serializable {
@@ -20,6 +32,7 @@ public class SpatialETL implements Serializable {
     private final SparkSession spark;
     private final GeometryOptions options;
     private final GeometryReader<?> adapter;
+    private List<Double> splitList;
 
     public SpatialETL(SparkSession spark, GeometryOptions options, GeometryReader<?> adapter) {
         this.spark = spark;
@@ -66,15 +79,91 @@ public class SpatialETL implements Serializable {
                 .orElseThrow(() -> new RuntimeException("No geometry column found"));
 
         Dataset<Row> transformed = df.withColumn(
-                geomCol,
+                "geometry",
                 callUDF("stringOrGeomToGeometry", df.col(geomCol))
         );
 
 
-        // ایجاد جدول نقره‌ای
-        IcebergTableCreator.createIcebergTableFromSchema(spark, transformed.schema(), silver.database(), silver.table());
         transformed = transformed.filter(col("geometry").isNotNull());
+
+        //long total = transformed.count();
+
+
+        GeohashToLongUdfRegistry.registerAll(spark);
+
+        MinInBucketUdfRegistry.registerAll(spark);
+
+        transformed =transformed.withColumn(
+                "geohash_numeric",
+                functions.callUDF(
+                        "geohashToLong",
+                        transformed.col("geometry")
+                )
+        );
+
+
+
+        // تعداد کل رکوردها
+        long totalCount = transformed.count();
+
+        // اندازه تقریبی هر بازه
+        long bucketSize = 64;
+        long numBuckets = (totalCount + bucketSize - 1) / bucketSize; // سقف تقسیم
+
+        System.out.println("Total count: " + totalCount + ", Number of buckets: " + numBuckets);
+
+        // درصدهای مورد نیاز برای approxQuantile
+        double[] probabilities = new double[(int) numBuckets + 1];
+        for (int i = 0; i <= numBuckets; i++) {
+            probabilities[i] = i * 1.0 / numBuckets;
+        }
+
+        // محاسبه تقریبی مرزهای بازه‌ها
+        double[] splits = transformed.stat().approxQuantile("geohash_numeric", probabilities, 0.001);
+
+        List<Double> splitList = Arrays.stream(splits)
+                .boxed()
+                .collect(Collectors.toList());
+        MinInBucketUdfRegistry.setSplitList(splitList);
+
+
+        System.out.println("Splits: " + Arrays.toString(splits));
+
+        transformed = transformed.withColumn(
+                "bucket_min",
+                functions.callUDF(
+                        "minInBucketUDF",
+                        functions.col("geohash_numeric")
+                )
+        );
+
+
+        // ایجاد جدول نقره‌ای
+        IcebergTableCreatorWithPartitioning.createIcebergTableFromSchema(
+                spark,
+                transformed.schema(),
+                silver.database(),
+                silver.table(),
+                List.of("identity(bucket_min)")
+        );
+
         transformed.writeTo(silver.database() + "." + silver.table()).append();
+        //spark.sql(String.format("ALTER TABLE %s.%s WRITE ORDERED BY (geometry.center.x ASC)", silver.database(), silver.table()
+        //));
+
+        //Dataset<Row> df2 = transformed.withColumn("center_x", col("geometry.center.x"));
+
+
+
+        //Dataset<Row> df2 = transformed.withColumn("center_x", col("geometry.center.x"));
+
+
+
+
+        // حالا dfWithBucket شامل ستون bucket_min است
+        transformed.show();
     }
 }
+
+
 

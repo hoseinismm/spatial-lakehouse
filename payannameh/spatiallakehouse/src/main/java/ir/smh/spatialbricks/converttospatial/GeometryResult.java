@@ -1,15 +1,27 @@
 package ir.smh.spatialbricks.converttospatial;
 
+import org.apache.spark.sql.SparkSession;
+import org.apache.spark.sql.api.java.UDF1;
 import org.locationtech.jts.geom.*;
 import org.locationtech.jts.geom.Envelope;
 import org.apache.spark.sql.catalyst.expressions.GenericRowWithSchema;
 import org.apache.spark.sql.types.StructType;
+
+import java.util.HashMap;
 import java.util.Map;
 import ch.hsr.geohash.GeoHash;
 
 public class GeometryResult {
     public Geometry geometry; // شیء JTS
     public Map<String, Object> geomMap; // ساختار Map برای UDF
+    private static final Map<Character, Integer> GEOHASH_MAP = new HashMap<>();
+
+    static {
+        String chars = "0123456789bcdefghjkmnpqrstuvwxyz";
+        for (int i = 0; i < chars.length(); i++) {
+            GEOHASH_MAP.put(chars.charAt(i), i);
+        }
+    }
 
     public GeometryResult() {
     }
@@ -97,4 +109,19 @@ public class GeometryResult {
         return null;
     }
 
+
+
+    public static Long convertGeohashToLong(String gh) {
+        if (gh == null || gh.isEmpty()) return null;
+        long value = 0L;
+        for (char c : gh.toCharArray()) {
+            Integer v = GEOHASH_MAP.get(c);
+            if (v == null) {
+                throw new IllegalArgumentException("Invalid geohash character: " + c);
+            }
+            value = value * 32 + v;
+        }
+        return value;
+    }
 }
+

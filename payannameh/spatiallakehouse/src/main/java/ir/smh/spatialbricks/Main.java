@@ -9,6 +9,7 @@ import org.apache.spark.sql.catalyst.analysis.NoSuchTableException;
 
 
 public class Main {
+
     public static void main(String[] args) throws NoSuchTableException {
 
         var spark = SparkConfig.createSession("../datasets/newyork");
@@ -28,6 +29,3 @@ public class Main {
         spark.stop();
     }
 }
-
-
-

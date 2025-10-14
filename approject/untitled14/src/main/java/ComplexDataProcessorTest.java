@@ -1,0 +1,241 @@
+import java.io.*;
+import java.util.*;
+import java.util.*;
+class ComplexDataProcessor {
+
+    public String processData(List<Map<String, Object>> data, String processingMode, int threshold, Map<String, Boolean> options) {
+        StringBuilder output = new StringBuilder();
+        output.append("P1\n");
+        List<String> results = new ArrayList<>();
+
+
+        if (data == null || data.isEmpty()) {
+            output.append("P2");
+            results.add("Warning: Input data is null or empty.");
+            return output.toString();
+        }
+        output.append("P3\n");
+        if (processingMode == null || processingMode.isEmpty()) {
+            output.append("P4");
+            results.add("Error: Processing mode cannot be null or empty.");
+            return output.toString();
+        }
+        output.append("P5\n");
+        int i = 0;
+
+        while (i < data.size()) {
+            output.append("P6\n");
+            Map<String, Object> item = data.get(i);
+            if (item == null || !item.containsKey("value")) {
+                output.append("P7\n");
+                results.add("Warning: Skipping invalid data item.");
+                i++;
+                continue;
+            }
+            output.append("P8\n");
+            Object valueObj = item.get("value");
+            if (!(valueObj instanceof Integer)) {
+                output.append("P9\n");
+                results.add("Warning: Skipping item with non-integer value.");
+                i++;
+                continue;
+            }
+            output.append("P10\n");
+            int value = (Integer) valueObj;
+
+            switch (processingMode) {
+                case "alpha":
+                    output.append("P11\n");
+                    if (value > threshold) {
+                        output.append("P12\n");
+                        if (options != null && options.getOrDefault("doubleHighAlpha", false)) {
+                            output.append("P13\n");
+                            results.add("Alpha: High value doubled: " + (value * 2));
+                        } else {
+                            output.append("P14\n");
+                            results.add("Alpha: High value: " + value);
+                        }
+                    }
+                    else if (value < threshold) {
+                        output.append("P15\n");
+                        if (options != null && options.containsKey("addLowAlpha")) {
+                            output.append("P16\n");
+                            results.add("Alpha: Low value adjusted: " + (value + (options.get("addLowAlpha") ? 10 : 5)));
+                        } else {
+                            output.append("P17\n");
+                            results.add("Alpha: Low value: " + value);
+                        }
+                    } else {
+                        output.append("P18\n");
+                        results.add("Alpha: Threshold value: " + value);
+                    }
+                    output.append("P19\n");
+                    break;
+
+                case "beta":
+                    output.append("P20\n");
+                    if (item.containsKey("category")) {
+                        output.append("P21\n");
+                        String category = (String) item.get("category");
+                        if ("special".equalsIgnoreCase(category)) {
+                            output.append("P22\n");
+                            if (options != null && options.getOrDefault("negateSpecialBeta", false)) {
+                                output.append("P23\n");
+                                results.add("Beta: Special category, negated value: " + (-value));
+                            } else {
+                                output.append("P24\n");
+                                results.add("Beta: Special category: " + value);
+                            }
+                        } else if ("normal".equalsIgnoreCase(category)) {
+                            output.append("P25\n");
+                            results.add("Beta: Normal category: " + value);
+                        } else {
+                            output.append("P26\n");
+                            results.add("Beta: Unknown category.");
+                        }
+                    } else {
+                        output.append("P27\n");
+                        results.add("Beta: No category provided.");
+                    }
+                    output.append("P28\n");
+                    break;
+
+                case "gamma":
+                    output.append("P29\n");
+                    int j = 0;
+                    while (j < 3) {
+                        output.append("P30\n");
+                        if (value > threshold + j * 5) {
+                            output.append("P31\n");
+                            if (options != null && options.getOrDefault("flagGamma", false)) {
+                                output.append("P32\n");
+                                results.add("Gamma: Loop " + (j + 1) + ", High value with flag.");
+                            } else {
+                                output.append("P33\n");
+                                results.add("Gamma: Loop " + (j + 1) + ", High value.");
+                            }
+                        } else if (value < threshold - j * 5) {
+                            output.append("P34\n");
+                            results.add("Gamma: Loop " + (j + 1) + ", Low value.");
+                        } else {
+                            output.append("P35\n");
+                            results.add("Gamma: Loop " + (j + 1) + ", Within range.");
+                            break; // Exit inner loop
+                        }
+                        output.append("P36\n");
+                        j++;
+                    }
+                    output.append("P37\n");
+                    break;
+
+                default:
+                    output.append("P38\n");
+                    results.add("Error: Invalid processing mode encountered.");
+            }
+            output.append("P39\n");
+            if (options != null && options.getOrDefault("logAll", false)) {
+                output.append("P40\n");
+                results.add("Logged: " + item.toString());
+            }
+            output.append("P41\n");
+            i++;
+        }
+        output.append("P42");
+        return output.toString();
+    }
+}
+
+public class ComplexDataProcessorTest {
+        public static ArrayList<ArrayList<Integer>>  createpairedges() throws IOException {
+        int[][] edges = new int[61][3];
+        File file = new File("src/edges.txt");
+        try {
+            FileReader reader = new FileReader(file);
+        } catch (FileNotFoundException e) {
+            throw new RuntimeException(e);
+        }
+        int i;
+        Scanner sc = null;
+        try {
+            sc = new Scanner(file);
+        } catch (FileNotFoundException e) {
+            throw new RuntimeException(e);
+        }
+        for (i = 0; i < 61; i++) {
+            String a = sc.nextLine();
+            String[] b = a.split(" ");
+            for (int j = 0; j < 3; j++) {
+                b[j] = b[j].substring(1);
+                edges[i][j] = Integer.parseInt(b[j]);
+            }
+        }
+        ArrayList<ArrayList<Integer>> pairedges = new ArrayList<>();
+        int s = 0;
+        for (i = 0; i < 61; i++) {
+            for (int j = 0; j < 61; j++) {
+                if (edges[i][2] == edges[j][1]) {
+                    ArrayList<Integer> pair = new ArrayList<>();
+                    s++;
+                    pair.add(s);
+                    pair.add(edges[i][0]);
+                    pair.add(edges[j][0]);
+                    pair.add(edges[i][1]);
+                    pair.add(edges[j][1]);
+                    pair.add(edges[j][2]);
+                    pairedges.add(pair);
+                }
+
+            }
+        }
+        return pairedges;
+    }
+    public static void main(String[] args) throws IOException {
+        ArrayList<ArrayList<Integer>> result=createpairedges();
+        ComplexDataProcessor processor = new ComplexDataProcessor();
+        List<Map<String, Object>> data = new ArrayList<>();
+        Map<String, Object> item1 = new HashMap<>();
+        item1.put("value", 15);
+        item1.put("category", "normal");
+        data.add(item1);
+        Map<String, Object> item2 = new HashMap<>();
+        item2.put("value", 25);
+        item2.put("category", "special");
+        data.add(item2);
+        Map<String, Object> item3 = new HashMap<>();
+        item3.put("value", 5);
+        data.add(item3);
+        Map<String, Boolean> options = new HashMap<>(Map.of(
+                "doubleHighAlpha", true,
+                "addLowAlpha", true,
+                "logAll", true
+        ));
+        String results = processor.processData(data, "alpha", 20, options);
+        String[] nodes=results.split("\n");
+        int[] node=new int[nodes.length];
+        for (int i = 0; i < nodes.length; i++) {
+            node[i]=Integer.parseInt(nodes[i].substring(1));
+        }
+        ArrayList<Integer> uncoverededgepair=new ArrayList<>();
+        ArrayList<Integer> coverededgepair=new ArrayList<>();
+        for (int i = 0; i < result.size(); i++) {
+            int p1=result.get(i).get(3);
+            int p2=result.get(i).get(4);
+            int p3=result.get(i).get(5);
+            boolean coverage=false;
+            for (int j=0;j<node.length-2;j++) {
+                if (node[j] == p1 && node[j + 1] == p2 && node[j + 2] == p3) {
+                    coverage = true;
+                    break;
+                }
+            }
+            if (coverage==false) {
+                uncoverededgepair.add(result.get(i).get(0));
+            } else coverededgepair.add(result.get(i).get(0));
+            }
+        if (uncoverededgepair.size()==0) {
+            System.out.println("edgepair coverage was successfull");
+        } else
+            System.out.println(uncoverededgepair);
+            System.out.println(coverededgepair);
+    }
+}

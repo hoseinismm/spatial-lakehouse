@@ -13,6 +13,7 @@ public class Main {
     public static void main(String[] args) throws NoSuchTableException {
 
         var spark = SparkConfig.createSession("../datasets/newyork");
+
         SedonaContext.create(spark);
 
         GeometryOptions options = GeometryOptions.of("geohash");
@@ -21,10 +22,14 @@ public class Main {
 
         SpatialETL etl = new SpatialETL(spark, options, adapter);
 
+        SpatialETL2 etl2= new SpatialETL2(spark, options, adapter);
+
         TableSpec bronze = new TableSpec("bronzelayer", "FireStations", "");
         TableSpec silver = new TableSpec("silverlayer", "FireStations", "");
 
-        etl.processFile(bronze, silver, "../datasets/newyork/raw-files/FireStations_ndjson.json");
+        etl.processFile(bronze, silver, "../datasets/newyork/raw-files/group_id_0_ndjson.json");
+        etl2.processFile(bronze, silver, "../datasets/newyork/raw-files/group_id_1_ndjson.json");
+        etl2.processFile(bronze, silver, "../datasets/newyork/raw-files/group_id_2_ndjson.json");
 
         spark.stop();
     }

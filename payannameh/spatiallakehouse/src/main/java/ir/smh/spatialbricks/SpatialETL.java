@@ -55,16 +55,18 @@ public class SpatialETL implements Serializable {
                     "geometry",
                     expr("ST_AsGeoJSON(geometry)")
             );
-
             IcebergTableCreator.createIcebergTableFromSchema(spark, dfGeoJson.schema(), bronze.database(), bronze.table());
             dfGeoJson.writeTo(bronze.database() + "." + bronze.table()).append();
+
         } else if (inputPath.toLowerCase().endsWith(".parquet")) {
             df = spark.read().parquet(inputPath);
             IcebergTableCreator.createIcebergTableFromSchema(spark, df.schema(), bronze.database(), bronze.table());
             df.writeTo(bronze.database() + "." + bronze.table()).append();
+
         } else if (inputPath.toLowerCase().endsWith(".csv")) {
             df = spark.read().csv(inputPath);
             df.writeTo(bronze.database() + "." + bronze.table()).append();
+
         } else {
             throw new IllegalArgumentException("Unsupported file format: " + inputPath);
         }
@@ -156,6 +158,8 @@ public class SpatialETL implements Serializable {
 
 
         //Dataset<Row> df2 = transformed.withColumn("center_x", col("geometry.center.x"));
+
+
 
 
 

@@ -5,44 +5,44 @@ Comprehensive Architecture & Integration Guide for Large-Scale Spatial Processin
 
 ## 🏛️ System Architecture Overview
 
-The **SpatialBricks** framework is designed to optimize spatial data processing, management, and indexing performance across distributed computing platforms (e.g., Apache Spark and Apache Iceberg) [cite: 4]. The overall architecture consists of API Entry Points, Pipeline Executors, Format Converters, and Reference Bucket Managers [cite: 4].
+The **SpatialBricks** framework is designed to optimize spatial data processing, management, and indexing performance across distributed computing platforms (e.g., Apache Spark and Apache Iceberg) . The overall architecture consists of API Entry Points, Pipeline Executors, Format Converters, and Reference Bucket Managers.
 
-| Component Class | Role / Type | Description |
-| :--- | :---: | :--- |
-| **`SpatialBricks`** | `API Core` | The primary entry-point API exposing high-level methods for users to perform ingestion, indexing, and data writing operations [cite: 4]. |
-| **`PipeLineExecutor`** | `Executor` | Orchestrates execution logic for various ingestion modes and pipeline operations requested by the user [cite: 4]. |
-| **`GeometryReader`** | `Interface` | Contains subclasses equipped with readers for spatial formats (WKT, WKB, GeoJSON) and passes constructed objects to execution pipelines [cite: 4]. |
-| **`UdfRegistry`** | `Interface` | Provides serialization, formatting, and UDF decoding mechanisms according to user-selected spatial formats [cite: 4]. |
-| **`AddOrUpdateIndex`** | `Indexing` | Responsible for indexing unindexed tables previously written by PipeLineExecutor or re-indexing datasets for higher spatial granularity [cite: 4]. |
-| **`SpatialReader`** | `Reader` | Reads input paths, locates spatial columns, parses geometry strings into JTS Geometry objects, and outputs a Spark Dataset [cite: 4]. |
-| **`GeometryTransformer`** | `Transformer` | Converts spatial data into WKB, SP, or FSP representations using the Adapter pattern. Formats are stored in the `geometry` column alongside `bbox_partitioning` sub-fields [cite: 4]. |
-| **`BucketManager`** | `Core Storage` | Manages reference buckets, snapshot loading, auto-generation of global buckets, estimation of sub-buckets, and boundary calculations (`computeBucketBorders`) [cite: 4]. |
-| **`BboxIndexing`** | `Distributed Index` | Broadcasts reference bucket states to cluster nodes and utilizes custom `FindBucket` UDFs to evaluate `bbox_partitioning` values independently across nodes [cite: 4]. |
-| **`BucketService`** | `Service` | Corrects and adjusts bucket configurations based on existing table partition metadata to prevent error accumulation [cite: 4]. |
-| **`TableWriter`** | `Writer` | Validates table existence and schema alignment, then performs atomic writes for both table data and isolated reference bucket metadata files [cite: 4]. |
+| Component Class | Role / Type | Description                                                                                                                                                                 |
+| :--- | :---: |:----------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| **`SpatialBricks`** | `API Core` | The primary entry-point API exposing high-level methods for users to perform ingestion, indexing, and data writing operations.                                              |
+| **`PipeLineExecutor`** | `Executor` | Orchestrates execution logic for various ingestion modes and pipeline operations requested by the user.                                                                     |
+| **`GeometryReader`** | `Interface` | Contains subclasses equipped with readers for spatial formats (WKT, WKB, GeoJSON) and passes constructed objects to execution pipelines.                                    |
+| **`UdfRegistry`** | `Interface` | Provides serialization, formatting, and UDF decoding mechanisms according to user-selected spatial formats.                                                                 |
+| **`AddOrUpdateIndex`** | `Indexing` | Responsible for indexing unindexed tables previously written by PipeLineExecutor or re-indexing datasets for higher spatial granularity.                                    |
+| **`SpatialReader`** | `Reader` | Reads input paths, locates spatial columns, parses geometry strings into JTS Geometry objects, and outputs a Spark Dataset.                                                 |
+| **`GeometryTransformer`** | `Transformer` | Converts spatial data into WKB, SP, or FSP representations using the Adapter pattern. Formats are stored in the `geometry` column alongside `bbox_partitioning` sub-fields. |
+| **`BucketManager`** | `Core Storage` | Manages reference buckets, snapshot loading, auto-generation of global buckets, estimation of sub-buckets, and boundary calculations (`computeBucketBorders`).              |
+| **`BboxIndexing`** | `Distributed Index` | Broadcasts reference bucket states to cluster nodes and utilizes custom `FindBucket` UDFs to evaluate `bbox_partitioning` values independently across nodes.                |
+| **`BucketService`** | `Service` | Corrects and adjusts bucket configurations based on existing table partition metadata to prevent error accumulation.                                                        |
+| **`TableWriter`** | `Writer` | Validates table existence and schema alignment, then performs atomic writes for both table data and isolated reference bucket metadata files.                               |
 
 > 📌 **Important Note on Caching:**  
-> If spatial indexing is requested, the Dataset is automatically cached to prevent redundant transformation steps across multiple Spark Action operations [cite: 4].
+> If spatial indexing is requested, the Dataset is automatically cached to prevent redundant transformation steps across multiple Spark Action operations.
 
 ---
 
 ## 🚀 Getting Started & Environment Setup
 
 ### Prerequisites & Tested Versions
-SpatialBricks has been developed and verified using the following stack [cite: 4]:
+SpatialBricks has been developed and verified using the following stack:
 
-* **Java JDK:** `17` [cite: 4]
-* **Apache Spark:** `3.5.6` [cite: 4]
-* **Scala:** `2.13` [cite: 4]
-* **Apache Iceberg:** `1.9.2` [cite: 4]
-* **Apache Sedona:** `1.7.2` [cite: 4]
-* **Apache Maven:** `3.9+` [cite: 4]
+* **Java JDK:** `17` 
+* **Apache Spark:** `3.5.6` 
+* **Scala:** `2.13` 
+* **Apache Iceberg:** `1.9.2` 
+* **Apache Sedona:** `1.7.2` 
+* **Apache Maven:** `3.9+` 
 
 > ⚠️ **Warning:** Using different dependency versions may result in API incompatibilities or runtime errors [cite: 4].
 
 ### Installation & Maven Integration
 
-1. Clone the repository from GitHub [cite: 4]:
+1. Clone the repository from GitHub :
    ```bash
    git clone https://github.com/hoseinismm/spatialbricks.git
    ```
@@ -58,7 +58,7 @@ SpatialBricks has been developed and verified using the following stack [cite: 4
    ```
 
 > ⚙️ **Mandatory Java 17 VM Options:**  
-> Due to JDK 17 strong encapsulation rules, the following VM flags must be configured in your run configuration [cite: 4]:
+> Due to JDK 17 strong encapsulation rules, the following VM flags must be configured in your run configuration:
 > ```text
 > --add-opens java.base/java.io=ALL-UNNAMED 
 > --add-opens java.base/java.lang=ALL-UNNAMED
@@ -74,7 +74,7 @@ SpatialBricks has been developed and verified using the following stack [cite: 4
 ## 💻 Code Examples & Integration Snippets
 
 ### 1. SparkSession Configuration
-Recommended SparkSession setup configured with Iceberg and Sedona extensions [cite: 4]:
+Recommended SparkSession setup configured with Iceberg and Sedona extensions:
 
 ```java
 SparkSession spark = SparkSession.builder()
@@ -165,7 +165,7 @@ udfRegistry.registerDecode();
 ```
 
 ### 6. Query Optimization with Bounding Box Filtering
-By attaching explicit `bbox_partitioning` filters to SQL queries, Spark leverages metadata pruning via Lazy Evaluation to bypass irrelevant partition files, drastically improving query latency [cite: 4]:
+By attaching explicit `bbox_partitioning` filters to SQL queries, Spark leverages metadata pruning via Lazy Evaluation to bypass irrelevant partition files, drastically improving query latency:
 
 ```sql
 SELECT SUM(ST_AreaSpheroid(geom)) AS total_area
@@ -181,14 +181,14 @@ WHERE ST_Within(geom, iran.geom)
 
 ## 📁 Supported Input File Formats
 
-SpatialBricks natively accepts input files formatted as [cite: 4]:
+SpatialBricks natively accepts input files formatted as :
 * **CSV** [cite: 4]
 * **Parquet** [cite: 4]
-* **JSON** (Must strictly be `ndjson` / Line-delimited JSON format) [cite: 4]
+* **JSON** (Must strictly be `ndjson` / Line-delimited JSON format) 
 
 > 💡 **Converting Standard GeoJSON to NDJSON:**  
-> If you have a standard GeoJSON file array, use the utility class `ConvertGeoJsonStreaming` under the project's `utilities` package to stream and convert it into `ndjson` format [cite: 4].
+> If you have a standard GeoJSON file array, use the utility class `ConvertGeoJsonStreaming` under the project's `utilities` package to stream and convert it into `ndjson` format.
 
 ---
 
-*SpatialBricks Documentation — English Edition 🚀* [cite: 4]
+*SpatialBricks Documentation — English Edition 🚀* 

@@ -36,3 +36,5 @@ build/
 
 ### Mac OS ###
 .DS_Store
+/src/main/java/ir/smh/spatialbricks/create_datasets/
+/src/main/java/ir/smh/spatialbricks/test_queries/

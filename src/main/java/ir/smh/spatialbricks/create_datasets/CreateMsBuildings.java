@@ -73,11 +73,11 @@ public class CreateMsBuildings {
 
 //                spatialWriting.silverLayerWithoutBboxIndexing(silverUnindexed, path);
 
-//                spatialWriting.silverLayerWithBboxIndexing(silverIndexed, path, 150000L, 1048576L);
+//                spatialWriting.AddDataWithIndexing(silverIndexed, path, 150000L, 1048576L);
+//
+//                flattenSpatialWriting.AddDataWithIndexing(flattenSilverUnindexed, path);
 
-//                flattenSpatialWriting.silverLayerWithoutBboxIndexing(flattenSilverUnindexed, path);
-
-                flattenSpatialWriting.AddDataWithIndexing(flattenSilverIndexed, path, 150000L, 131072L);
+                flattenSpatialWriting.AddDataWithIndexing(flattenSilverIndexed, path, 150000L, 1048576L);
 
                 long duration = System.currentTimeMillis() - startTime;
 

@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SpatialBricks Implementation & Usage Guide</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Fira+Code:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #2563eb;
+            --primary-hover: #1d4ed8;
+            --bg-main: #0f172a;
+            --bg-card: #1e293b;
+            --bg-code: #090d16;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --accent: #06b6d4;
+            --accent-green: #10b981;
+            --accent-amber: #f59e0b;
+            --border-color: #334155;
+            --shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.45);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: var(--bg-main);
+            color: var(--text-main);
+            line-height: 1.7;
+            padding: 2rem 1rem;
+            max-width: 1100px;
+            margin: 0 auto;
+        }
+
+        /* Header Styling */
+        header {
+            text-align: center;
+            padding: 3rem 1.5rem;
+            background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            margin-bottom: 2.5rem;
+            box-shadow: var(--shadow);
+            position: relative;
+            overflow: hidden;
+        }
+
+        header::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(37,99,235,0.1) 0%, transparent 70%);
+            pointer-events: none;
+        }
+
+        header h1 {
+            font-size: 2.3rem;
+            font-weight: 800;
+            color: #ffffff;
+            margin-bottom: 1rem;
+            background: linear-gradient(90deg, #60a5fa, #38bdf8);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        header p {
+            color: var(--text-muted);
+            font-size: 1.1rem;
+        }
+
+        /* Section Styling */
+        section {
+            background-color: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: var(--shadow);
+        }
+
+        h2 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--accent);
+            border-bottom: 2px solid var(--border-color);
+            padding-bottom: 0.75rem;
+            margin-bottom: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        h3 {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: #60a5fa;
+            margin: 1.5rem 0 0.75rem 0;
+        }
+
+        p {
+            margin-bottom: 1rem;
+        }
+
+        /* Lists */
+        ul, ol {
+            margin-left: 1.5rem;
+            margin-bottom: 1rem;
+        }
+
+        li {
+            margin-bottom: 0.5rem;
+        }
+
+        /* Class Grid Cards */
+        .class-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.25rem;
+            margin-top: 1.5rem;
+        }
+
+        .class-card {
+            background: #0f172a;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 1.25rem;
+            transition: transform 0.2s, border-color 0.2s;
+        }
+
+        .class-card:hover {
+            border-color: var(--primary);
+            transform: translateY(-2px);
+        }
+
+        .class-name {
+            font-family: 'Fira Code', monospace;
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--accent-green);
+            margin-bottom: 0.5rem;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 0.2rem 0.5rem;
+            font-size: 0.75rem;
+            border-radius: 4px;
+            background: var(--border-color);
+            color: var(--text-muted);
+            margin-bottom: 0.75rem;
+        }
+
+        .badge.interface {
+            background: #0284c7;
+            color: #fff;
+        }
+
+        .badge.core {
+            background: #7c3aed;
+            color: #fff;
+        }
+
+        /* Callout Box */
+        .callout {
+            background: rgba(245, 158, 11, 0.1);
+            border-left: 4px solid var(--accent-amber);
+            padding: 1rem 1.25rem;
+            border-radius: 4px;
+            margin: 1.25rem 0;
+        }
+
+        .callout-title {
+            font-weight: 700;
+            color: var(--accent-amber);
+            margin-bottom: 0.25rem;
+        }
+
+        /* Requirements Pills */
+        .req-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.75rem;
+            margin: 1rem 0;
+        }
+
+        .req-pill {
+            background: #0f172a;
+            border: 1px solid var(--border-color);
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            font-family: 'Fira Code', monospace;
+            color: #e2e8f0;
+        }
+
+        /* Code Blocks */
+        pre {
+            background-color: var(--bg-code);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 1.25rem;
+            overflow-x: auto;
+            direction: ltr;
+            text-align: left;
+            margin: 1.25rem 0;
+            font-family: 'Fira Code', monospace;
+            font-size: 0.9rem;
+            line-height: 1.5;
+            color: #e2e8f0;
+        }
+
+        code {
+            font-family: 'Fira Code', monospace;
+            background: rgba(255, 255, 255, 0.08);
+            padding: 0.2rem 0.4rem;
+            border-radius: 4px;
+            font-size: 0.88em;
+            color: #38bdf8;
+        }
+
+        pre code {
+            background: none;
+            padding: 0;
+            color: inherit;
+        }
+
+        .kw { color: #f43f5e; } /* Keyword */
+        .func { color: #38bdf8; } /* Function */
+        .str { color: #10b981; } /* String */
+        .num { color: #fb923c; } /* Number */
+        .cmnt { color: #64748b; font-style: italic; } /* Comment */
+
+        /* Footer */
+        footer {
+            text-align: center;
+            padding: 2rem;
+            color: var(--text-muted);
+            font-size: 0.9rem;
+            border-top: 1px solid var(--border-color);
+            margin-top: 3rem;
+        }
+
+        @media (max-width: 768px) {
+            body {
+                padding: 1rem 0.5rem;
+            }
+            header h1 {
+                font-size: 1.7rem;
+            }
+            section {
+                padding: 1.25rem;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>SpatialBricks Implementation & Usage Guide</h1>
+        <p>Comprehensive Architecture & Integration Guide for Large-Scale Spatial Processing</p>
+    </header>
+
+    <!-- Section 1: Architecture -->
+    <section id="architecture">
+        <h2>System Architecture Overview</h2>
+        <p>
+            The <strong>SpatialBricks</strong> framework is designed to optimize spatial data processing, management, and indexing performance across distributed computing platforms (e.g., Apache Spark and Apache Iceberg). 
+            The overall architecture consists of API Entry Points, Pipeline Executors, Format Converters, and Reference Bucket Managers.
+        </p>
+
+        <div class="class-grid">
+            <div class="class-card">
+                <div class="class-name">SpatialBricks</div>
+                <span class="badge core">API Core</span>
+                <p>The primary entry-point API exposing high-level methods for users to perform ingestion, indexing, and data writing operations.</p>
+            </div>
+
+            <div class="class-card">
+                <div class="class-name">PipeLineExecutor</div>
+                <span class="badge core">Executor</span>
+                <p>Orchestrates execution logic for various ingestion modes and pipeline operations requested by the user.</p>
+            </div>
+
+            <div class="class-card">
+                <div class="class-name">GeometryReader</div>
+                <span class="badge interface">Interface</span>
+                <p>Contains subclasses equipped with readers for spatial formats (WKT, WKB, GeoJSON) and passes constructed objects to execution pipelines.</p>
+            </div>
+
+            <div class="class-card">
+                <div class="class-name">UdfRegistry</div>
+                <span class="badge interface">Interface</span>
+                <p>Provides serialization, formatting, and UDF decoding mechanisms according to user-selected spatial formats.</p>
+            </div>
+
+            <div class="class-card">
+                <div class="class-name">AddOrUpdateIndex</div>
+                <span class="badge core">Indexing</span>
+                <p>Responsible for indexing unindexed tables previously written by PipeLineExecutor or re-indexing datasets for higher spatial granularity.</p>
+            </div>
+
+            <div class="class-card">
+                <div class="class-name">SpatialReader</div>
+                <span class="badge core">Reader</span>
+                <p>Reads input paths, locates spatial columns, parses geometry strings into JTS Geometry objects, and outputs a Spark Dataset.</p>
+            </div>
+
+            <div class="class-card">
+                <div class="class-name">GeometryTransformer</div>
+                <span class="badge core">Transformer</span>
+                <p>Converts spatial data into WKB, SP, or FSP representations using the Adapter pattern. Formats are stored in the <code>geometry</code> column alongside <code>bbox_partitioning</code> sub-fields.</p>
+            </div>
+
+            <div class="class-card">
+                <div class="class-name">BucketManager</div>
+                <span class="badge core">Core Storage</span>
+                <p>Manages reference buckets, snapshot loading, auto-generation of global buckets, estimation of sub-buckets, and boundary calculations (<code>computeBucketBorders</code>).</p>
+            </div>
+
+            <div class="class-card">
+                <div class="class-name">BboxIndexing</div>
+                <span class="badge core">Distributed Index</span>
+                <p>Broadcasts reference bucket states to cluster nodes and utilizes custom <code>FindBucket</code> UDFs to evaluate <code>bbox_partitioning</code> values independently across nodes.</p>
+            </div>
+
+            <div class="class-card">
+                <div class="class-name">BucketService</div>
+                <span class="badge core">Service</span>
+                <p>Corrects and adjusts bucket configurations based on existing table partition metadata to prevent error accumulation.</p>
+            </div>
+
+            <div class="class-card">
+                <div class="class-name">TableWriter</div>
+                <span class="badge core">Writer</span>
+                <p>Validates table existence and schema alignment, then performs atomic writes for both table data and isolated reference bucket metadata files.</p>
+            </div>
+        </div>
+
+        <div class="callout">
+            <div class="callout-title">📌 Important Note on Caching</div>
+            <p>If spatial indexing is requested, the Dataset is automatically cached to prevent redundant transformation steps across multiple Spark Action operations.</p>
+        </div>
+    </section>
+
+    <!-- Section 2: Getting Started -->
+    <section id="guide">
+        <h2>Getting Started & Environment Setup</h2>
+
+        <h3>Prerequisites & Tested Versions</h3>
+        <p>SpatialBricks has been developed and verified using the following stack:</p>
+        <div class="req-grid">
+            <div class="req-pill">Java JDK 17</div>
+            <div class="req-pill">Apache Spark 3.5.6</div>
+            <div class="req-pill">Scala 2.13</div>
+            <div class="req-pill">Apache Iceberg 1.9.2</div>
+            <div class="req-pill">Apache Sedona 1.7.2</div>
+            <div class="req-pill">Apache Maven 3.9+</div>
+        </div>
+        <p style="color: var(--accent-amber); font-size: 0.9rem;">
+            ⚠️ Using different dependency versions may result in API incompatibilities or runtime errors.
+        </p>
+
+        <h3>Installation & Maven Integration</h3>
+        <ol>
+            <li>
+                Clone the repository from GitHub:
+                <pre><code>git clone https://github.com/hoseinismm/spatialbricks.git</code></pre>
+            </li>
+            <li>Open the project in IntelliJ IDEA (or preferred IDE) and import the <code>pom.xml</code> file.</li>
+            <li>In the Maven Lifecycle tab, run <code>clean</code> followed by <code>install</code>.</li>
+            <li>
+                To consume SpatialBricks in another project, include the following dependency in your <code>pom.xml</code>:
+<pre><code>&lt;dependency&gt;
+    &lt;groupId&gt;ir.smh&lt;/groupId&gt;
+    &lt;artifactId&gt;spatialbricks&lt;/artifactId&gt;
+    &lt;version&gt;1.0-SNAPSHOT&lt;/version&gt;
+&lt;/dependency&gt;</code></pre>
+            </li>
+        </ol>
+
+        <div class="callout">
+            <div class="callout-title">⚙️ Mandatory Java 17 VM Options</div>
+            <p>Due to JDK 17 strong encapsulation rules, the following VM flags must be configured in your run configuration:</p>
+<pre><code>--add-opens java.base/java.io=ALL-UNNAMED 
+--add-opens java.base/java.lang=ALL-UNNAMED
+--add-opens java.base/java.nio=ALL-UNNAMED 
+--add-opens java.base/java.net=ALL-UNNAMED
+--add-opens java.base/java.util=ALL-UNNAMED
+--add-exports java.base/sun.nio.ch=ALL-UNNAMED 
+--add-exports java.base/sun.security.action=ALL-UNNAMED</code></pre>
+        </div>
+    </section>
+
+    <!-- Section 3: Code Examples -->
+    <section id="code-examples">
+        <h2>Code Examples & Integration Snippets</h2>
+
+        <h3>1. SparkSession Configuration</h3>
+        <p>Recommended SparkSession setup configured with Iceberg and Sedona extensions:</p>
+<pre><code><span class="kw">SparkSession</span> spark = <span class="kw">SparkSession</span>.<span class="func">builder</span>()
+    .<span class="func">appName</span>(<span class="str">"Spatial-Lakehouse-Writer"</span>)
+    <span class="cmnt">// MEMORY CONFIGURATION</span>
+    .<span class="func">config</span>(<span class="str">"spark.driver.memory"</span>, <span class="str">"12g"</span>)
+    .<span class="func">config</span>(<span class="str">"spark.driver.maxResultSize"</span>, <span class="str">"4g"</span>)
+    .<span class="func">config</span>(<span class="str">"spark.executor.memory"</span>, <span class="str">"8g"</span>)
+    .<span class="func">config</span>(<span class="str">"spark.memory.fraction"</span>, <span class="str">"0.8"</span>)
+    .<span class="func">config</span>(<span class="str">"spark.memory.storageFraction"</span>, <span class="str">"0.3"</span>)
+    <span class="cmnt">// OFF-HEAP MEMORY</span>
+    .<span class="func">config</span>(<span class="str">"spark.memory.offHeap.enabled"</span>, <span class="str">"true"</span>)
+    .<span class="func">config</span>(<span class="str">"spark.memory.offHeap.size"</span>, <span class="str">"2g"</span>)
+    <span class="cmnt">// PERFORMANCE TUNING</span>
+    .<span class="func">config</span>(<span class="str">"spark.sql.shuffle.partitions"</span>, <span class="str">"50"</span>)
+    .<span class="func">config</span>(<span class="str">"spark.default.parallelism"</span>, <span class="str">"50"</span>)
+    .<span class="func">config</span>(<span class="str">"spark.sql.autoBroadcastJoinThreshold"</span>, <span class="str">"-1"</span>)
+    .<span class="func">config</span>(<span class="str">"spark.sql.files.maxPartitionBytes"</span>, <span class="str">"32m"</span>)
+    .<span class="func">config</span>(<span class="str">"spark.sql.parquet.blockSize"</span>, <span class="str">"32m"</span>)
+    <span class="cmnt">// SEDONA + ICEBERG EXTENSIONS</span>
+    .<span class="func">config</span>(<span class="str">"spark.sql.extensions"</span>,
+            <span class="str">"org.apache.iceberg.spark.extensions.IcebergSparkSessionExtensions,"</span> +
+            <span class="str">"org.apache.sedona.sql.SedonaSqlExtensions"</span>)
+    .<span class="func">config</span>(<span class="str">"spark.sql.catalog.spark_catalog"</span>,
+            <span class="str">"org.apache.iceberg.spark.SparkSessionCatalog"</span>)
+    .<span class="func">config</span>(<span class="str">"spark.sql.catalog.spark_catalog.type"</span>, <span class="str">"hadoop"</span>)
+    .<span class="func">config</span>(<span class="str">"spark.sql.catalog.spark_catalog.warehouse"</span>, warehousePath)
+    <span class="cmnt">// DEPENDENCY PACKAGES</span>
+    .<span class="func">config</span>(<span class="str">"spark.jars.packages"</span>, <span class="kw">String</span>.<span class="func">join</span>(<span class="str">","</span>, <span class="kw">new</span> <span class="kw">String</span>[]{
+            <span class="str">"org.apache.iceberg:iceberg-spark-runtime-3.5_2.13:1.9.2"</span>,
+            <span class="str">"org.apache.sedona:sedona-spark-shaded-3.5_2.13:1.7.2"</span>
+    }))
+    .<span class="func">master</span>(<span class="str">"local[4]"</span>)
+    .<span class="func">getOrCreate</span>();</code></pre>
+
+        <h3>2. Basic Initialization and Ingestion</h3>
+<pre><code><span class="kw">import</span> ir.smh.spatialbricks.api.SpatialBricks;
+<span class="kw">import</span> ir.smh.spatialbricks.api.InputFormat;
+<span class="kw">import</span> ir.smh.spatialbricks.api.GeometryFormat;
+
+<span class="cmnt">// Initialize API Instance</span>
+<span class="kw">SpatialBricks</span> sb = <span class="kw">new</span> <span class="func">SpatialBricks</span>(spark, <span class="kw">InputFormat</span>.GEOJSON, <span class="kw">GeometryFormat</span>.FSP);
+
+<span class="cmnt">// Simple write to Iceberg table: nyc.taxi</span>
+sb.<span class="func">write</span>(<span class="str">"nyc"</span>, <span class="str">"taxi"</span>, <span class="str">"datasets/taxi.geojson"</span>);</code></pre>
+
+        <h3>3. Writing with Spatial Indexing (Write With Index)</h3>
+<pre><code>sb.<span class="func">writeWithIndex</span>(
+    <span class="str">"nyc"</span>, 
+    <span class="str">"taxi"</span>, 
+    <span class="str">"datasets/taxi.geojson"</span>, 
+    <span class="num">1500000</span>,  <span class="cmnt">// driverRows: Target row count per estimation driver step</span>
+    <span class="num">131072</span>   <span class="cmnt">// maxPartitionSize: Upper threshold for partition row limits</span>
+);</code></pre>
+
+        <h3>4. Additional Indexing Methods</h3>
+<pre><code><span class="cmnt">// Index newly appended rows with null partition keys</span>
+sb.<span class="func">addIndexToNewRows</span>(<span class="str">"nyc"</span>, <span class="str">"taxi"</span>, <span class="num">1500000</span>, <span class="num">131072</span>);
+
+<span class="cmnt">// Direct DataFrame/Dataset Ingestion</span>
+<span class="kw">Dataset</span>&lt;<span class="kw">Row</span>&gt; df = spark.<span class="func">read</span>().<span class="func">parquet</span>(<span class="str">"datasets/taxi.geojson"</span>);
+sb.<span class="func">writeWithIndex</span>(<span class="str">"nyc"</span>, <span class="str">"taxi"</span>, df, <span class="num">1500000</span>, <span class="num">131072</span>);
+
+<span class="cmnt">// Index from Parquet containing explicit Longitude / Latitude columns</span>
+sb.<span class="func">writeWithIndex</span>(<span class="str">"nyc"</span>, <span class="str">"taxi"</span>, <span class="str">"datasets/taxi.parquet"</span>, <span class="str">"Start_Lon"</span>, <span class="str">"Start_Lat"</span>, <span class="num">1500000</span>, <span class="num">131072</span>);
+
+<span class="cmnt">// Rebuild global spatial index from scratch</span>
+sb.<span class="func">rebuildIndex</span>(<span class="str">"nyc"</span>, <span class="str">"taxi"</span>, <span class="num">1500000</span>, <span class="num">131072</span>);</code></pre>
+
+        <h3>5. Geometry Decoding & Sedona Queries</h3>
+<pre><code><span class="cmnt">// Read from Iceberg and decode spatial column into JTS geometry</span>
+<span class="kw">Dataset</span>&lt;<span class="kw">Row</span>&gt; t = spark.<span class="func">read</span>()
+    .<span class="func">format</span>(<span class="str">"iceberg"</span>)
+    .<span class="func">load</span>(fullName)
+    .<span class="func">withColumn</span>(<span class="str">"geom"</span>, <span class="func">expr</span>(<span class="str">"decodeGeometry(geometry)"</span>));
+
+<span class="cmnt">// Manual UDF Registration (if SpatialBricks instance isn't present)</span>
+<span class="kw">UDFRegistry</span>&lt;?,?&gt; udfRegistry = <span class="kw">new</span> <span class="func">FlattenSpatialParquet</span>(spark);
+udfRegistry.<span class="func">registerDecode</span>();</code></pre>
+
+        <h3>6. Query Optimization with Bounding Box Filtering</h3>
+        <p>By attaching explicit <code>bbox_partitioning</code> filters to SQL queries, Spark leverages metadata pruning via Lazy Evaluation to bypass irrelevant partition files, drastically improving query latency:</p>
+<pre><code><span class="kw">SELECT</span> <span class="func">SUM</span>(ST_AreaSpheroid(geom)) <span class="kw">AS</span> total_area
+<span class="kw">FROM</span> polygons, iran
+<span class="kw">WHERE</span> <span class="func">ST_Within</span>(geom, iran.geom)
+  <span class="kw">AND</span> geometry.bbox_partitioning.min_x &lt; <span class="num">63.5</span>
+  <span class="kw">AND</span> geometry.bbox_partitioning.min_y &lt; <span class="num">40.8</span>
+  <span class="kw">AND</span> geometry.bbox_partitioning.max_x &gt; <span class="num">44.0</span>
+  <span class="kw">AND</span> geometry.bbox_partitioning.max_y &gt; <span class="num">25.0</span>;</code></pre>
+    </section>
+
+    <!-- Section 4: Data Formats -->
+    <section id="file-formats">
+        <h2>Supported Input File Formats</h2>
+        <p>SpatialBricks natively accepts input files formatted as:</p>
+        <ul>
+            <li><strong>CSV</strong></li>
+            <li><strong>Parquet</strong></li>
+            <li><strong>JSON</strong> (Must strictly be <code>ndjson</code> / Line-delimited JSON format)</li>
+        </ul>
+        <div class="callout">
+            <div class="callout-title">💡 Converting Standard GeoJSON to NDJSON</div>
+            <p>If you have a standard GeoJSON file array, use the utility class <code>ConvertGeoJsonStreaming</code> under the project's <code>utilities</code> package to stream and convert it into <code>ndjson</code> format.</p>
+        </div>
+    </section>
+
+    <footer>
+        <p>SpatialBricks Documentation — English Edition 🚀</p>
+    </footer>
+
+</body>
+</html>

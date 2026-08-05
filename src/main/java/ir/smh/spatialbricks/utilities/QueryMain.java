@@ -12,9 +12,13 @@ import org.apache.sedona.spark.SedonaContext;
 import org.apache.sedona.sql.utils.SedonaSQLRegistrator;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
+import org.apache.spark.sql.SaveMode;
 import org.apache.spark.sql.catalyst.analysis.NoSuchTableException;
 import org.apache.spark.sql.catalyst.analysis.TableAlreadyExistsException;
 import org.apache.spark.sql.catalyst.parser.ParseException;
+import org.apache.spark.sql.types.DataTypes;
+import org.apache.spark.sql.types.StructType;
+import static org.apache.spark.sql.functions.*;
 
 import java.io.IOException;
 
@@ -33,21 +37,48 @@ public class QueryMain {
 //          FROM wkbIndexed.aubuildings
 //          LIMIT 20;
 //        """).show(false);
+        String path =   "../datasets/nyc_taxi/yellow_tripdata_2009-0?.parquet";
 
-        Table table = Spark3Util.loadIcebergTable(
-                spark,
-                "SilverIndexed.nyc_taxi");
-        SparkActions
-                .get(spark)
-                .rewriteDataFiles(table)
-                .execute();
-        SparkActions.get(spark)
-                .expireSnapshots(table)
-                .expireOlderThan(System.currentTimeMillis())
-                .execute();
-        SparkActions.get(spark)
-                .deleteOrphanFiles(table)
-                .execute();
+        Dataset<Row> df = spark.read().parquet(path);
+
+        StructType geoJsonSchema = new StructType()
+                .add("type", "string")
+                .add("coordinates", DataTypes.createArrayType(DataTypes.DoubleType));
+
+        Dataset<Row> startPoints = df.select(
+                from_json(
+                        expr("ST_AsGeoJSON(ST_Point(Start_Lon, Start_Lat))"),
+                        geoJsonSchema
+                ).alias("geometry")
+        );
+
+        Dataset<Row> endPoints = df.select(
+                from_json(
+                        expr("ST_AsGeoJSON(ST_Point(End_Lon, End_Lat))"),
+                        geoJsonSchema
+                ).alias("geometry")
+        );
+
+        Dataset<Row> points = startPoints.union(endPoints);
+
+        points.write()
+                .mode(SaveMode.Overwrite)
+                .json("../datasets/nyc_taxi/points_ndjson");
+
+//        Table table = Spark3Util.loadIcebergTable(
+//                spark,
+//                "SilverIndexed.nyc_taxi");
+//        SparkActions
+//                .get(spark)
+//                .rewriteDataFiles(table)
+//                .execute();
+//        SparkActions.get(spark)
+//                .expireSnapshots(table)
+//                .expireOlderThan(System.currentTimeMillis())
+//                .execute();
+//        SparkActions.get(spark)
+//                .deleteOrphanFiles(table)
+//                .execute();
 
 
 

@@ -1,0 +1,559 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ساختار پیاده‌سازی و راهنمای استفاده از SpatialBricks</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@300;400;500;700;800&family=Fira+Code:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #2563eb;
+            --primary-hover: #1d4ed8;
+            --bg-main: #0f172a;
+            --bg-card: #1e293b;
+            --bg-code: #090d16;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --accent: #06b6d4;
+            --accent-green: #10b981;
+            --accent-amber: #f59e0b;
+            --border-color: #334155;
+            --shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.45);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Vazirmatn', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: var(--bg-main);
+            color: var(--text-main);
+            line-height: 1.8;
+            padding: 2rem 1rem;
+            max-width: 1100px;
+            margin: 0 auto;
+        }
+
+        /* Header Styling */
+        header {
+            text-align: center;
+            padding: 3rem 1.5rem;
+            background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            margin-bottom: 2.5rem;
+            box-shadow: var(--shadow);
+            position: relative;
+            overflow: hidden;
+        }
+
+        header::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(37,99,235,0.1) 0%, transparent 70%);
+            pointer-events: none;
+        }
+
+        header h1 {
+            font-size: 2.2rem;
+            font-weight: 800;
+            color: #ffffff;
+            margin-bottom: 1rem;
+            background: linear-gradient(90deg, #60a5fa, #38bdf8);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        header p {
+            color: var(--text-muted);
+            font-size: 1.1rem;
+        }
+
+        /* Section Styling */
+        section {
+            background-color: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: var(--shadow);
+        }
+
+        h2 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--accent);
+            border-bottom: 2px solid var(--border-color);
+            padding-bottom: 0.75rem;
+            margin-bottom: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        h3 {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: #60a5fa;
+            margin: 1.5rem 0 0.75rem 0;
+        }
+
+        p {
+            margin-bottom: 1rem;
+            text-align: justify;
+        }
+
+        /* Diagram / Architecture section */
+        .diagram-container {
+            background-color: #0b1120;
+            border: 1px dashed var(--border-color);
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin: 1.5rem 0;
+            text-align: center;
+        }
+
+        .diagram-title {
+            font-size: 0.95rem;
+            color: var(--accent-amber);
+            margin-bottom: 1rem;
+            font-weight: 600;
+        }
+
+        .arch-tree {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            align-items: center;
+            direction: ltr;
+            font-family: 'Fira Code', monospace;
+            font-size: 0.9rem;
+        }
+
+        .tree-node {
+            background: #1e293b;
+            border: 1px solid var(--primary);
+            color: #38bdf8;
+            padding: 0.6rem 1.2rem;
+            border-radius: 6px;
+            font-weight: 600;
+        }
+
+        /* Lists */
+        ul, ol {
+            margin-right: 1.5rem;
+            margin-bottom: 1rem;
+        }
+
+        li {
+            margin-bottom: 0.5rem;
+        }
+
+        /* Class Grid Cards */
+        .class-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.25rem;
+            margin-top: 1.5rem;
+        }
+
+        .class-card {
+            background: #0f172a;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 1.25rem;
+            transition: transform 0.2s, border-color 0.2s;
+        }
+
+        .class-card:hover {
+            border-color: var(--primary);
+            transform: translateY(-2px);
+        }
+
+        .class-name {
+            font-family: 'Fira Code', monospace;
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--accent-green);
+            margin-bottom: 0.5rem;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 0.2rem 0.5rem;
+            font-size: 0.75rem;
+            border-radius: 4px;
+            background: var(--border-color);
+            color: var(--text-muted);
+            margin-bottom: 0.75rem;
+            font-family: sans-serif;
+        }
+
+        .badge.interface {
+            background: #0284c7;
+            color: #fff;
+        }
+
+        .badge.core {
+            background: #7c3aed;
+            color: #fff;
+        }
+
+        /* Note / Callout Box */
+        .callout {
+            background: rgba(245, 158, 11, 0.1);
+            border-right: 4px solid var(--accent-amber);
+            padding: 1rem 1.25rem;
+            border-radius: 4px;
+            margin: 1.25rem 0;
+        }
+
+        .callout-title {
+            font-weight: 700;
+            color: var(--accent-amber);
+            margin-bottom: 0.25rem;
+        }
+
+        /* Requirements Pills */
+        .req-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.75rem;
+            margin: 1rem 0;
+        }
+
+        .req-pill {
+            background: #0f172a;
+            border: 1px solid var(--border-color);
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            font-family: 'Fira Code', monospace;
+            color: #e2e8f0;
+        }
+
+        /* Code Blocks */
+        pre {
+            background-color: var(--bg-code);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 1.25rem;
+            overflow-x: auto;
+            direction: ltr;
+            text-align: left;
+            margin: 1.25rem 0;
+            font-family: 'Fira Code', monospace;
+            font-size: 0.9rem;
+            line-height: 1.5;
+            color: #e2e8f0;
+        }
+
+        code {
+            font-family: 'Fira Code', monospace;
+            background: rgba(255, 255, 255, 0.08);
+            padding: 0.2rem 0.4rem;
+            border-radius: 4px;
+            font-size: 0.88em;
+            color: #38bdf8;
+            direction: ltr;
+            display: inline-block;
+        }
+
+        pre code {
+            background: none;
+            padding: 0;
+            color: inherit;
+        }
+
+        .kw { color: #f43f5e; } /* Keyword */
+        .func { color: #38bdf8; } /* Function */
+        .str { color: #10b981; } /* String */
+        .num { color: #fb923c; } /* Number */
+        .cmnt { color: #64748b; font-style: italic; } /* Comment */
+
+        /* Footer */
+        footer {
+            text-align: center;
+            padding: 2rem;
+            color: var(--text-muted);
+            font-size: 0.9rem;
+            border-top: 1px solid var(--border-color);
+            margin-top: 3rem;
+        }
+
+        @media (max-width: 768px) {
+            body {
+                padding: 1rem 0.5rem;
+            }
+            header h1 {
+                font-size: 1.6rem;
+            }
+            section {
+                padding: 1.25rem;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>ساختار پیاده‌سازی و راهنمای استفاده از SpatialBricks</h1>
+        <p>مستندات کامل معماری پلتفرم پردازش داده‌های مکانی در مقیاس بزرگ</p>
+    </header>
+
+    <!-- بخش اول: شرح ساختار برنامه -->
+    <section id="architecture">
+        <h2>شرح ساختار برنامه</h2>
+        <p>
+            چارچوب SpatialBricks جهت بهبود کارایی پردازش، مدیریت و نمایه گذاری داده های مکانی در پلتفرم های پردازش توزیع شده (مانند Spark و Iceberg) طراحی شده است. 
+            معماری کلی برنامه از اجزای مختلفی شامل درگاه API، اجراکننده های پایپ لاین، مبدل های فرمت و مدیریت باکت ها تشکیل شده است.
+        </p>
+
+        <div class="class-grid">
+            <div class="class-card">
+                <div class="class-name">SpatialBricks</div>
+                <span class="badge core">API Core</span>
+                <p>درگاهی اصلی است که رابط کاربر با مولفه spatialBricks بوده و از طریق آن کاربر به تمام توابع مورد نیاز دسترسی پیدا می کند.</p>
+            </div>
+
+            <div class="class-card">
+                <div class="class-name">PipeLineExecutor</div>
+                <span class="badge core">Executor</span>
+                <p>برای هر حالتی که کاربر درخواست ورود و ثبت اطلاعات نماید، متدهای لازم متناسب با درخواست های مختلف را در بر دارد تا عملیات ها را به ترتیب اجرا کند.</p>
+            </div>
+
+            <div class="class-card">
+                <div class="class-name">GeometryReader</div>
+                <span class="badge interface">Interface</span>
+                <p>حاوی زیرکلاس هایی است که متد لازم برای خواندن انواع داده مکانی (WKT, WKB, GeoJSON) را دارند و شیء ایجاد شده را به PipeLineExecutor یا AddOrUpdateIndex تحویل می دهد.</p>
+            </div>
+
+            <div class="class-card">
+                <div class="class-name">UdfRegistry</div>
+                <span class="badge interface">Interface</span>
+                <p>حاوی زیرکلاس هایی برای قالب بندی و رمزگشایی (Decode) از قالب داده مکانی بر حسب نوع انتخابی کاربر می باشد.</p>
+            </div>
+
+            <div class="class-card">
+                <div class="class-name">AddOrUpdateIndex</div>
+                <span class="badge core">Indexing</span>
+                <p>برای نمایه گذاری جداولی است که قبلاً توسط PipeLineExecutor بدون نمایه ساخته شده اند یا بازنمایه گذاری داده های قبلی جهت افزایش دقت.</p>
+            </div>
+
+            <div class="class-card">
+                <div class="class-name">SpatialReader</div>
+                <span class="badge core">Reader</span>
+                <p>مسیر داده را خوانده، ستون داده مکانی را پیدا کرده، آن را به شیء JTS تبدیل نموده و کل جدول را در قالب دیتاست اسپارک برمی گرداند.</p>
+            </div>
+
+            <div class="class-card">
+                <div class="class-name">GeometryTransformer</div>
+                <span class="badge core">Transformer</span>
+                <p>تبدیل داده مکانی به یکی از سه فرمت WKB، SP یا FSP با الگوی Adapter. فرمت ها در ستون geometry همراه با زیرستون bbox_partitioning ذخیره می گردند.</p>
+            </div>
+
+            <div class="class-card">
+                <div class="class-name">BucketManager</div>
+                <span class="badge core">Core Storage</span>
+                <p>مدیریت باکت مرجع، بارگذاری اسنپ شات، ایجاد اتوماتیک باکت مرجع جهانی، تخمین زیرباکت های جدید و محاسبه مرزها (computeBucketBorders).</p>
+            </div>
+
+            <div class="class-card">
+                <div class="class-name">BboxIndexing</div>
+                <span class="badge core">Distributed Index</span>
+                <p>ارسال نسخه باکت مرجع به کل خوشه ها و استفاده از UDF اختصاصی FindBucket برای محاسبه مستقل مقادیر bbox_partitioning در هر خوشه.</p>
+            </div>
+
+            <div class="class-card">
+                <div class="class-name">BucketService</div>
+                <span class="badge core">Service</span>
+                <p>تصحیح اطلاعات باکت بر اساس فراداده پارتیشن های جدول موجود جهت جلوگیری از انباشت خطاها.</p>
+            </div>
+
+            <div class="class-card">
+                <div class="class-name">TableWriter</div>
+                <span class="badge core">Writer</span>
+                <p>بررسی وجود جدول، تطابق اسکیمای دیتافریم با اسکیمای جدول و ذخیره اتمیک جدول و فایل باکت مرجع مجزا.</p>
+            </div>
+        </div>
+
+        <div class="callout">
+            <div class="callout-title">📌 نکته مهم در ذخیره سازی دیتافریم</div>
+            <p>در صورتی که کاربر تقاضای نمایه گذاری داده را نموده باشد، به دلیل وجود سه دستور اکشن (Action) و جلوگیری از تکرار عملیات تبدیل، دیتافریم مورد نظر به صورت کش (Cache) ذخیره می گردد.</p>
+        </div>
+    </section>
+
+    <!-- بخش دوم: راهنمای استفاده -->
+    <section id="guide">
+        <h2>راهنمای استفاده از برنامه SpatialBricks</h2>
+
+        <h3>پیش نیازها و نسخه های نیازمند پشتیبانی</h3>
+        <p>این چارچوب با نسخه های زیر توسعه و آزمایش شده است:</p>
+        <div class="req-grid">
+            <div class="req-pill">Java JDK 17</div>
+            <div class="req-pill">Apache Spark 3.5.6</div>
+            <div class="req-pill">Scala 2.13</div>
+            <div class="req-pill">Apache Iceberg 1.9.2</div>
+            <div class="req-pill">Apache Sedona 1.7.2</div>
+            <div class="req-pill">Apache Maven 3.9+</div>
+        </div>
+        <p style="color: var(--accent-amber); font-size: 0.9rem;">
+            ⚠️ استفاده از نسخه های متفاوت ممکن است به دلیل تغییر در APIها، وابستگی ها یا سازگاری کتابخانه ها باعث بروز خطا شود.
+        </p>
+
+        <h3>مراحل نصب و آماده سازی پروژه</h3>
+        <ol>
+            <li>
+                دریافت مخزن پروژه از گیتهاب:
+                <pre><code>git clone https://github.com/hoseinismm/spatialbricks.git</code></pre>
+            </li>
+            <li>پروژه را در محیط IntelliJ IDEA باز کرده و فایل <code>pom.xml</code> را به Maven اضافه نمایید.</li>
+            <li>در بخش Maven Lifecycle، ابتدا دستور <code>clean</code> و سپس <code>install</code> را اجرا نمایید.</li>
+            <li>
+                برای استفاده از کتابخانه در پروژه های دیگر، وابستگی زیر را به <code>pom.xml</code> پروژه خود اضافه کنید:
+<pre><code>&lt;dependency&gt;
+    &lt;groupId&gt;ir.smh&lt;/groupId&gt;
+    &lt;artifactId&gt;spatialbricks&lt;/artifactId&gt;
+    &lt;version&gt;1.0-SNAPSHOT&lt;/version&gt;
+&lt;/dependency&gt;</code></pre>
+            </li>
+        </ol>
+
+        <div class="callout">
+            <div class="callout-title">⚙️ تنظیمات VM Options برای Java 17</div>
+            <p>با توجه به محدودیت های ماژول بندی در Java 17، تنظیمات زیر باید حتماً در VM Options اضافه گردند:</p>
+<pre><code>--add-opens java.base/java.io=ALL-UNNAMED 
+--add-opens java.base/java.lang=ALL-UNNAMED
+--add-opens java.base/java.nio=ALL-UNNAMED 
+--add-opens java.base/java.net=ALL-UNNAMED
+--add-opens java.base/java.util=ALL-UNNAMED
+--add-exports java.base/sun.nio.ch=ALL-UNNAMED 
+--add-exports java.base/sun.security.action=ALL-UNNAMED</code></pre>
+        </div>
+    </section>
+
+    <!-- بخش سوم: نمونه کدهای کاربردی -->
+    <section id="code-examples">
+        <h2>نمونه کدهای کاربردی و نحوه استفاده</h2>
+
+        <h3>۱. تنظیمات پیکربندی SparkSession</h3>
+        <p>نمونه تنظیمات اسپارک آزمایش شده با چارچوب همراه با پیکربندی های Iceberg و Sedona:</p>
+<pre><code><span class="kw">SparkSession</span> spark = <span class="kw">SparkSession</span>.<span class="func">builder</span>()
+    .<span class="func">appName</span>(<span class="str">"Spatial-Lakehouse-Writer"</span>)
+    <span class="cmnt">// MEMORY</span>
+    .<span class="func">config</span>(<span class="str">"spark.driver.memory"</span>, <span class="str">"12g"</span>)
+    .<span class="func">config</span>(<span class="str">"spark.driver.maxResultSize"</span>, <span class="str">"4g"</span>)
+    .<span class="func">config</span>(<span class="str">"spark.executor.memory"</span>, <span class="str">"8g"</span>)
+    .<span class="func">config</span>(<span class="str">"spark.memory.fraction"</span>, <span class="str">"0.8"</span>)
+    .<span class="func">config</span>(<span class="str">"spark.memory.storageFraction"</span>, <span class="str">"0.3"</span>)
+    <span class="cmnt">// OFFHEAP</span>
+    .<span class="func">config</span>(<span class="str">"spark.memory.offHeap.enabled"</span>, <span class="str">"true"</span>)
+    .<span class="func">config</span>(<span class="str">"spark.memory.offHeap.size"</span>, <span class="str">"2g"</span>)
+    <span class="cmnt">// PERFORMANCE</span>
+    .<span class="func">config</span>(<span class="str">"spark.sql.shuffle.partitions"</span>, <span class="str">"50"</span>)
+    .<span class="func">config</span>(<span class="str">"spark.default.parallelism"</span>, <span class="str">"50"</span>)
+    .<span class="func">config</span>(<span class="str">"spark.sql.autoBroadcastJoinThreshold"</span>, <span class="str">"-1"</span>)
+    .<span class="func">config</span>(<span class="str">"spark.sql.files.maxPartitionBytes"</span>, <span class="str">"32m"</span>)
+    .<span class="func">config</span>(<span class="str">"spark.sql.parquet.blockSize"</span>, <span class="str">"32m"</span>)
+    <span class="cmnt">// SEDONA + ICEBERG</span>
+    .<span class="func">config</span>(<span class="str">"spark.sql.extensions"</span>,
+            <span class="str">"org.apache.iceberg.spark.extensions.IcebergSparkSessionExtensions,"</span> +
+            <span class="str">"org.apache.sedona.sql.SedonaSqlExtensions"</span>)
+    .<span class="func">config</span>(<span class="str">"spark.sql.catalog.spark_catalog"</span>,
+            <span class="str">"org.apache.iceberg.spark.SparkSessionCatalog"</span>)
+    .<span class="func">config</span>(<span class="str">"spark.sql.catalog.spark_catalog.type"</span>, <span class="str">"hadoop"</span>)
+    .<span class="func">config</span>(<span class="str">"spark.sql.catalog.spark_catalog.warehouse"</span>, warehousePath)
+    <span class="cmnt">// PACKAGES</span>
+    .<span class="func">config</span>(<span class="str">"spark.jars.packages"</span>, <span class="kw">String</span>.<span class="func">join</span>(<span class="str">","</span>, <span class="kw">new</span> <span class="kw">String</span>[]{
+            <span class="str">"org.apache.iceberg:iceberg-spark-runtime-3.5_2.13:1.9.2"</span>,
+            <span class="str">"org.apache.sedona:sedona-spark-shaded-3.5_2.13:1.7.2"</span>
+    }))
+    .<span class="func">master</span>(<span class="str">"local[4]"</span>)
+    .<span class="func">getOrCreate</span>();</code></pre>
+
+        <h3>۲. مقداردهی اولیه و نوشتن ساده داده</h3>
+<pre><code><span class="kw">import</span> ir.smh.spatialbricks.api.SpatialBricks;
+<span class="kw">import</span> ir.smh.spatialbricks.api.InputFormat;
+<span class="kw">import</span> ir.smh.spatialbricks.api.GeometryFormat;
+
+<span class="cmnt">// مقداردهی اولیه</span>
+<span class="kw">SpatialBricks</span> sb = <span class="kw">new</span> <span class="func">SpatialBricks</span>(spark, <span class="kw">InputFormat</span>.GEOJSON, <span class="kw">GeometryFormat</span>.FSP);
+
+<span class="cmnt">// نوشتن داده در جدول nyc.taxi</span>
+sb.<span class="func">write</span>(<span class="str">"nyc"</span>, <span class="str">"taxi"</span>, <span class="str">"datasets/taxi.geojson"</span>);</code></pre>
+
+        <h3>۳. نوشتن داده همراه با نمایه گذاری مکانی (Write With Index)</h3>
+<pre><code>sb.<span class="func">writeWithIndex</span>(
+    <span class="str">"nyc"</span>, 
+    <span class="str">"taxi"</span>, 
+    <span class="str">"datasets/taxi.geojson"</span>, 
+    <span class="num">1500000</span>,  <span class="cmnt">// driverRows: تعداد رکورد محاسباتی درایور</span>
+    <span class="num">131072</span>   <span class="cmnt">// maxPartitionSize: آستانه مرزی تعداد رکوردهای پارتیشن</span>
+);</code></pre>
+
+        <h3>۴. سایر روش های بارگذاری و بازنمایه گذاری</h3>
+<pre><code><span class="cmnt">// نمایه گذاری ردیف های جدید که قبلا وارد شده اند اما کلید پارتیشن آن ها Null است</span>
+sb.<span class="func">addIndexToNewRows</span>(<span class="str">"nyc"</span>, <span class="str">"taxi"</span>, <span class="num">1500000</span>, <span class="num">131072</span>);
+
+<span class="cmnt">// استفاده مستقیم از Dataset اسپارک به عنوان ورودی</span>
+<span class="kw">Dataset</span>&lt;<span class="kw">Row</span>&gt; df = spark.<span class="func">read</span>().<span class="func">parquet</span>(<span class="str">"datasets/taxi.geojson"</span>);
+sb.<span class="func">writeWithIndex</span>(<span class="str">"nyc"</span>, <span class="str">"taxi"</span>, df, <span class="num">1500000</span>, <span class="num">131072</span>);
+
+<span class="cmnt">// بارگذاری از فایل Parquet دارای دو ستون طول و عرض جغرافیایی (Latitude / Longitude)</span>
+sb.<span class="func">writeWithIndex</span>(<span class="str">"nyc"</span>, <span class="str">"taxi"</span>, <span class="str">"datasets/taxi.parquet"</span>, <span class="str">"Start_Lon"</span>, <span class="str">"Start_Lat"</span>, <span class="num">1500000</span>, <span class="num">131072</span>);
+
+<span class="cmnt">// بازسازی کامل نمایه برای کل دیتاست (Rebuild Index)</span>
+sb.<span class="func">rebuildIndex</span>(<span class="str">"nyc"</span>, <span class="str">"taxi"</span>, <span class="num">1500000</span>, <span class="num">131072</span>);</code></pre>
+
+        <h3>۵. رمزگشایی (Decode) و اجرای پرس وجوهای پیشرفته Sedona</h3>
+<pre><code><span class="cmnt">// خواندن از Iceberg و رمزگشایی داده به شیء JTS</span>
+<span class="kw">Dataset</span>&lt;<span class="kw">Row</span>&gt; t = spark.<span class="func">read</span>()
+    .<span class="func">format</span>(<span class="str">"iceberg"</span>)
+    .<span class="func">load</span>(fullName)
+    .<span class="func">withColumn</span>(<span class="str">"geom"</span>, <span class="func">expr</span>(<span class="str">"decodeGeometry(geometry)"</span>));
+
+<span class="cmnt">// در صورت عدم تعریف شیء SpatialBricks اولیه، ثبت UDF به صورت دستی:</span>
+<span class="kw">UDFRegistry</span>&lt;?,?&gt; udfRegistry = <span class="kw">new</span> <span class="func">FlattenSpatialParquet</span>(spark);
+udfRegistry.<span class="func">registerDecode</span>();</code></pre>
+
+        <h3>۶. بهینه سازی پرس وجو با استفاده از فیلتر مرزی BBox</h3>
+        <p>با افزودن شرط مرزی محدوده مکانی به پرس وجو، اسپارک با استفاده از خاصیت Lazy Evaluation و فراداده پارتیشن ها، ابتدا پارتیشن های نامرتبط را حذف کرده و سرعت اجرا را به شدت افزایش می دهد:</p>
+<pre><code><span class="kw">SELECT</span> <span class="func">SUM</span>(ST_AreaSpheroid(geom)) <span class="kw">AS</span> total_area
+<span class="kw">FROM</span> polygons, iran
+<span class="kw">WHERE</span> <span class="func">ST_Within</span>(geom, iran.geom)
+  <span class="kw">AND</span> geometry.bbox_partitioning.min_x &lt; <span class="num">63.5</span>
+  <span class="kw">AND</span> geometry.bbox_partitioning.min_y &lt; <span class="num">40.8</span>
+  <span class="kw">AND</span> geometry.bbox_partitioning.max_x &gt; <span class="num">44.0</span>
+  <span class="kw">AND</span> geometry.bbox_partitioning.max_y &gt; <span class="num">25.0</span>;</code></pre>
+    </section>
+
+    <!-- بخش چهارم: ملاحظات فایلهای ورودی -->
+    <section id="file-formats">
+        <h2>فرمت فایلهای ورودی مجاز</h2>
+        <p>فایل ورودی تعریف شده برای نرم افزار باید یکی از سه نوع زیر باشد:</p>
+        <ul>
+            <li><strong>CSV</strong></li>
+            <li><strong>Parquet</strong></li>
+            <li><strong>JSON</strong> (حتماً از نوع <code>ndjson</code> یعنی هر رکورد در یک سطر مجزا)</li>
+        </ul>
+        <div class="callout">
+            <div class="callout-title">💡 تبدیل JSON معمولی به NDJSON</div>
+            <p>در صورتی که فایل JSON استاندارد (غیر ndjson) دارید، می توانید با استفاده از ابزار کمکی <code>ConvertGeoJsonStreaming</code> در پوشه <code>utilities</code> پروژه، فایل را به فرمت <code>ndjson</code> تبدیل نمایید.</p>
+        </div>
+    </section>
+
+    <footer>
+        <p>مستندات راهنما و ساختار SpatialBricks — نسخه وب 🚀</p>
+    </footer>
+
+</body>
+</html>

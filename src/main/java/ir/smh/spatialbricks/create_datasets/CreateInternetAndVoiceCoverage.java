@@ -1,6 +1,7 @@
 package ir.smh.spatialbricks.create_datasets;
 
 import ir.smh.spatialbricks.encoder.converttogeometry.GeoJsonGeometricalAdapter;
+import ir.smh.spatialbricks.udf.NFSP;
 import ir.smh.spatialbricks.udf.WKBIndexedParquet;
 import ir.smh.spatialbricks.utilities.PowerPlanUtil;
 import ir.smh.spatialbricks.core.PipelineExecutor;
@@ -43,6 +44,8 @@ public class CreateInternetAndVoiceCoverage {
 
         PipelineExecutor flattenSpatialWriting = new PipelineExecutor(spark,geoJsonFile, new FlattenSpatialParquet(spark)  );
 
+        PipelineExecutor NFSPWriting = new PipelineExecutor(spark,geoJsonFile, new NFSP(spark)  );
+
         String path = String.format("../datasets/internet_and_voice_coverage/F477_Voice_1412b.geojson");
 
         TableSpec wkbUnindexed = new TableSpec("wkbUnindexed", "internet_and_voice_coverage", folderpath);
@@ -51,6 +54,8 @@ public class CreateInternetAndVoiceCoverage {
         TableSpec silverIndexed = new TableSpec("silverIndexed", "internet_and_voice_coverage", folderpath);
         TableSpec flattenSilverUnindexed = new TableSpec("flattenSilverUnindexed", "internet_and_voice_coverage", folderpath);
         TableSpec flattenSilverIndexed = new TableSpec("flattenSilverIndexed", "internet_and_voice_coverage", folderpath);
+        TableSpec NFSPUnindexed = new TableSpec("NFSPUnindexed", "internet_and_voice_coverage", folderpath);
+        TableSpec NFSPIndexed =  new TableSpec("NFSPIndexed", "internet_and_voice_coverage", folderpath);
 
 
 
@@ -58,7 +63,7 @@ public class CreateInternetAndVoiceCoverage {
 
 //          wkbWriting.silverLayerWithoutBboxIndexing(wkbUnindexed, path );
 
-          wkbWriting.AddDataWithIndexing(wkbIndexed, path, 68L, 32L );
+//          wkbWriting.AddDataWithIndexing(wkbIndexed, path, 68L, 32L );
 
 //        spatialWriting.silverLayerWithoutBboxIndexing(silverUnindexed, path );
 
@@ -67,6 +72,10 @@ public class CreateInternetAndVoiceCoverage {
 //        flattenSpatialWriting.silverLayerWithoutBboxIndexing(flattenSilverUnindexed,path);
 
 //        flattenSpatialWriting.silverLayerWithBboxIndexing(flattenSilverIndexed,path,  68L, 32L);
+//
+//        NFSPWriting.AddDataWithoutIndexing(NFSPUnindexed,path);
+
+        NFSPWriting.AddDataWithIndexing(NFSPIndexed,path,  68L, 32L);
 
         long duration = System.currentTimeMillis() - startTime;
 

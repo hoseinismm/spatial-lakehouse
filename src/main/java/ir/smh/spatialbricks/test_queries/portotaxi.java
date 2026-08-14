@@ -1,13 +1,10 @@
 package ir.smh.spatialbricks.test_queries;
 
-import ir.smh.spatialbricks.udf.WKBIndexedParquet;
+import ir.smh.spatialbricks.udf.*;
 import ir.smh.spatialbricks.utilities.MultipointToLine;
 import ir.smh.spatialbricks.utilities.PowerPlanUtil;
 import ir.smh.spatialbricks.core.TableSpec;
 import ir.smh.spatialbricks.config.SparkConfig;
-import ir.smh.spatialbricks.udf.FlattenSpatialParquet;
-import ir.smh.spatialbricks.udf.SpatialParquet;
-import ir.smh.spatialbricks.udf.UDFRegistry;
 import org.apache.sedona.spark.SedonaContext;
 import org.apache.sedona.sql.utils.SedonaSQLRegistrator;
 import org.apache.spark.sql.Column;
@@ -43,6 +40,13 @@ public class portotaxi {
 
     private static final TableSpec flattenSilverIndexed =
             new TableSpec("flattenSilverIndexed", "portotaxi", "");
+
+    private static final TableSpec NFSPUnindexed =
+            new TableSpec("NFSPUnindexed", "portotaxi", "");
+
+    private static final TableSpec NFSPIndexed =
+            new TableSpec("NFSPIndexed", "portotaxi", "");
+
     public static void main(String[] args) throws Exception {
 
         PowerPlanUtil.setPowerPlan(PowerPlanUtil.SPARK_TEST);
@@ -86,21 +90,23 @@ public class portotaxi {
             int runs
             ) throws Exception {
 
-        long[][] results = new long[9][runs];
+        long[][] results = new long[11][runs];
 
         for (int i = 0; i < runs; i++) {
 
             System.out.println("Run " + (i + 1));
 
-            results[0][i] = testSpeedIndexed(wkbUnindexed, new WKBIndexedParquet(spark), false);
-            results[1][i] = testSpeedIndexed(wkbIndexed, new WKBIndexedParquet(spark), true);
-            results[2][i] = testSpeedIndexed(silverUnindexed, new SpatialParquet(spark), false);
-            results[3][i] = testSpeedIndexed(silverIndexed, new SpatialParquet(spark), true);
-            results[4][i] = testSpeedIndexed(flattenSilverUnindexed, new FlattenSpatialParquet(spark), false);
-            results[5][i] = testSpeedIndexed(flattenSilverIndexed, new FlattenSpatialParquet(spark), true);
-            results[6][i] = testConvertionToGeometry(wkbUnindexed,new WKBIndexedParquet(spark));
-            results[7][i] = testConvertionToGeometry(silverUnindexed,new SpatialParquet(spark));
-            results[8][i] = testConvertionToGeometry(flattenSilverUnindexed,new FlattenSpatialParquet(spark));
+            results[0][i] =0;// testSpeedIndexed(wkbUnindexed, new WKBIndexedParquet(spark), false);
+            results[1][i] =0;// testSpeedIndexed(wkbIndexed, new WKBIndexedParquet(spark), true);
+            results[2][i] =0;// testSpeedIndexed(silverUnindexed, new SpatialParquet(spark), false);
+            results[3][i] =0;// testSpeedIndexed(silverIndexed, new SpatialParquet(spark), true);
+            results[4][i] =0;// testSpeedIndexed(flattenSilverUnindexed, new FlattenSpatialParquet(spark), false);
+            results[5][i] =0;// testSpeedIndexed(flattenSilverIndexed, new FlattenSpatialParquet(spark), true);
+            results[6][i] = testSpeedIndexed(NFSPUnindexed, new NFSP(spark), false);
+            results[7][i] = testSpeedIndexed(NFSPIndexed, new NFSP(spark), true);
+            results[8][i] =0;// testConvertionToGeometry(wkbUnindexed,new WKBIndexedParquet(spark));
+            results[9][i] =0;// testConvertionToGeometry(silverUnindexed,new SpatialParquet(spark));
+            results[10][i] = testConvertionToGeometry(NFSPUnindexed,new FlattenSpatialParquet(spark));
 
         }
         return results;
@@ -116,9 +122,13 @@ public class portotaxi {
                 "Spatial Indexed",
                 "Flatten Unindexed",
                 "Flatten Indexed",
+                "NFSP Unindexed",
+                "NFSP Indexed",
                 "WKB Unindexed",
                 "Spatial Unindexed",
                 "Flatten Unindexed",
+                "NFSP Unindexed"
+
 
         };
 

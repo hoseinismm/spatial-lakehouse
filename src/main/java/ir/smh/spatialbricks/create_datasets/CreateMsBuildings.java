@@ -1,6 +1,7 @@
 package ir.smh.spatialbricks.create_datasets;
 
 import ir.smh.spatialbricks.encoder.converttogeometry.GeoJsonGeometricalAdapter;
+import ir.smh.spatialbricks.udf.NFSP;
 import ir.smh.spatialbricks.udf.WKBIndexedParquet;
 import ir.smh.spatialbricks.utilities.PowerPlanUtil;
 import ir.smh.spatialbricks.core.PipelineExecutor;
@@ -45,6 +46,9 @@ public class CreateMsBuildings {
                 PipelineExecutor flattenSpatialWriting =
                         new PipelineExecutor(spark, geoJsonFile, new FlattenSpatialParquet(spark));
 
+                PipelineExecutor NFSPWriting =
+                        new PipelineExecutor(spark, geoJsonFile, new NFSP(spark));
+
                 String path = "../datasets/msbuildings/MSBuildingsndjson.geojson";
 
                 TableSpec wkbUnindexed =
@@ -65,6 +69,12 @@ public class CreateMsBuildings {
                 TableSpec flattenSilverIndexed =
                         new TableSpec("flattenSilverIndexed", "msbuildings", folderpath);
 
+                TableSpec NFSPUnindexed =
+                        new TableSpec("NFSPUnindexed", "msbuildings", folderpath);
+
+                TableSpec NFSPIndexed =
+                        new TableSpec("NFSPIndexed", "msbuildings", folderpath);
+
                 long startTime = System.currentTimeMillis();
 
 //                wkbWriting.silverLayerWithoutBboxIndexing(wkbUnindexed, path);
@@ -75,9 +85,13 @@ public class CreateMsBuildings {
 
 //                spatialWriting.AddDataWithIndexing(silverIndexed, path, 150000L, 1048576L);
 //
-//                flattenSpatialWriting.AddDataWithIndexing(flattenSilverUnindexed, path);
+//                flattenSpatialWriting.AddDataWithoutIndexing(flattenSilverUnindexed, path);
 
-                flattenSpatialWriting.AddDataWithIndexing(flattenSilverIndexed, path, 150000L, 1048576L);
+//                flattenSpatialWriting.AddDataWithIndexing(flattenSilverIndexed, path, 150000L, 1048576L);
+
+//                NFSPWriting.AddDataWithoutIndexing(NFSPUnindexed, path);
+
+                NFSPWriting.AddDataWithIndexing(NFSPIndexed, path, 150000L, 1048576L);
 
                 long duration = System.currentTimeMillis() - startTime;
 

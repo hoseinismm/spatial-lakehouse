@@ -1,13 +1,10 @@
 package ir.smh.spatialbricks.test_queries;
 
 import ir.smh.spatialbricks.config.SparkConfig;
-import ir.smh.spatialbricks.udf.WKBIndexedParquet;
+import ir.smh.spatialbricks.udf.*;
 import ir.smh.spatialbricks.utilities.PowerPlanUtil;
 import ir.smh.spatialbricks.core.TableSpec;
 import ir.smh.spatialbricks.config.SparkConfigLocal;
-import ir.smh.spatialbricks.udf.FlattenSpatialParquet;
-import ir.smh.spatialbricks.udf.SpatialParquet;
-import ir.smh.spatialbricks.udf.UDFRegistry;
 import org.apache.sedona.spark.SedonaContext;
 import org.apache.sedona.sql.utils.SedonaSQLRegistrator;
 import org.apache.spark.sql.Dataset;
@@ -34,6 +31,9 @@ public class msbuildings {
     private static final UDFRegistry<?, ?> flattenRegistry =
             new FlattenSpatialParquet(spark);
 
+    private static final UDFRegistry<?, ?> NFSPRegistry =
+            new NFSP(spark);
+
 
     private static final TableSpec wkbUnindexed =
             new TableSpec("wkbUnindexed", "msbuildings", "");
@@ -53,12 +53,18 @@ public class msbuildings {
     private static final TableSpec flattenSilverIndexed =
             new TableSpec("flattenSilverIndexed", "msbuildings", "");
 
+    private static final TableSpec NFSPIndexed =
+            new TableSpec("NFSPIndexed", "msbuildings", "");
+
+    private static final TableSpec NFSPUnindexed =
+            new TableSpec("NFSPUnindexed", "msbuildings", "");
+
     public static void main(String[] args) throws Exception {
 
         try {
 
             PowerPlanUtil.setPowerPlan(PowerPlanUtil.SPARK_TEST);
-            final int runs = 6;
+            final int runs = 36;
 
             try {
 
@@ -80,21 +86,24 @@ public class msbuildings {
 
     private static long[][] runBenchmarks( int runs ) throws Exception {
 
-        long[][] results = new long[9][runs];
+        long[][] results = new long[12][runs];
 
         for (int i = 0; i < runs; i++) {
 
             System.out.println("Run " + (i + 1));
 
-            results[0][i] = testQuery(wkbUnindexed,false,wkbRegistry);
+            results[0][i] =0;// testQuery(wkbUnindexed,false,wkbRegistry);
             results[1][i] = testQuery( wkbIndexed, true, wkbRegistry);
-            results[2][i] = testQuery( silverUnindexed,false,spatialRegistry);
+            results[2][i] =0;// testQuery( silverUnindexed,false,spatialRegistry);
             results[3][i] = testQuery( silverIndexed, true, spatialRegistry);
-            results[4][i] = testQuery( flattenSilverUnindexed,false, flattenRegistry);
+            results[4][i] =0;// testQuery( flattenSilverUnindexed,false, flattenRegistry);
             results[5][i] = testQuery( flattenSilverIndexed, true, flattenRegistry);
-            results[6][i] = testDecode( wkbUnindexed, wkbRegistry);
-            results[7][i] = testDecode( silverUnindexed, spatialRegistry);
-            results[8][i] = testDecode( flattenSilverUnindexed, flattenRegistry);
+            results[6][i] =0;// testQuery( NFSPUnindexed,false, NFSPRegistry);
+            results[7][i] = testQuery( NFSPIndexed, true, NFSPRegistry);
+            results[8][i] =0;// testDecode( wkbUnindexed, wkbRegistry);
+            results[9][i] =0;// testDecode( silverUnindexed, spatialRegistry);
+            results[10][i] =0;// testDecode( flattenSilverUnindexed, flattenRegistry);
+            results[11][i] =0;// testDecode( NFSPUnindexed, NFSPRegistry);
 
         }
 
@@ -111,13 +120,16 @@ public class msbuildings {
                 "Spatial Indexed",
                 "Flatten Unindexed",
                 "Flatten Indexed",
+                "NFSP Unindexed",
+                "NFSP Indexed",
                 "WKB Unindexed",
                 "Spatial Unindexed",
-                "Flatten Unindexed"
+                "Flatten Unindexed",
+                "NFSP Unindexed",
 
         };
 
-        try (PrintWriter out = new PrintWriter("benchmark16_for_wkbmsbuildings.csv")) {
+        try (PrintWriter out = new PrintWriter("benchmark_indexed_msbuildings.csv")) {
 
             out.print("Test");
 

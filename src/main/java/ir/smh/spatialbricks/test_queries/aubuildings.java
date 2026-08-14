@@ -1,12 +1,9 @@
 package ir.smh.spatialbricks.test_queries;
 
-import ir.smh.spatialbricks.udf.WKBIndexedParquet;
+import ir.smh.spatialbricks.udf.*;
 import ir.smh.spatialbricks.utilities.PowerPlanUtil;
 import ir.smh.spatialbricks.core.TableSpec;
 import ir.smh.spatialbricks.config.SparkConfigLocal;
-import ir.smh.spatialbricks.udf.FlattenSpatialParquet;
-import ir.smh.spatialbricks.udf.SpatialParquet;
-import ir.smh.spatialbricks.udf.UDFRegistry;
 import org.apache.sedona.spark.SedonaContext;
 import org.apache.sedona.sql.utils.SedonaSQLRegistrator;
 import org.apache.spark.sql.Dataset;
@@ -41,6 +38,11 @@ public class aubuildings {
                 TableSpec flattenSilverIndexed = new TableSpec("flattenSilverIndexed", "aubuildings", "");
                 TableSpec wkbUnindexed = new TableSpec("wkbUnindexed", "aubuildings", "");
                 TableSpec wkbIndexed = new TableSpec("wkbIndexed", "aubuildings", "");
+                TableSpec NFSPUnindexed = new TableSpec("NFSPUnindexed", "aubuildings", "");
+                TableSpec NFSPIndexed = new TableSpec("NFSPIndexed", "aubuildings", "");
+
+
+
 
                 long[][] results = runBenchmarks(
                         spark,
@@ -50,7 +52,9 @@ public class aubuildings {
                         flattenSilverUnindexed,
                         flattenSilverIndexed,
                         wkbUnindexed,
-                        wkbIndexed
+                        wkbIndexed,
+                        NFSPUnindexed,
+                        NFSPIndexed
                 );
 
             writeResults(results, runs);
@@ -83,7 +87,9 @@ public class aubuildings {
             TableSpec flattenSilverUnindexed,
             TableSpec flattenSilverIndexed,
             TableSpec wkbUnindexed,
-            TableSpec wkbIndexed
+            TableSpec wkbIndexed,
+            TableSpec NFSPUnindexed,
+            TableSpec NFSPIndexed
             ) throws Exception {
 
         long[][] results = new long[12][runs];
@@ -92,15 +98,15 @@ public class aubuildings {
 
             System.out.println("Run " + (i + 1));
 
-            results[0][i] = testQuery(spark, wkbUnindexed ,false,new WKBIndexedParquet(spark));
-            results[1][i] = testQuery(spark, wkbIndexed,true,new WKBIndexedParquet(spark));
-            results[2][i] = testQuery(spark, silverUnindexed,false,new SpatialParquet(spark));
-            results[3][i] = testQuery(spark, silverIndexed, true, new SpatialParquet(spark));
-            results[4][i] = testQuery(spark, flattenSilverUnindexed,false, new FlattenSpatialParquet(spark) );
-            results[5][i] = testQuery(spark, flattenSilverIndexed, true, new FlattenSpatialParquet(spark) );
-            results[6][i] = testDecode(spark, wkbUnindexed, new WKBIndexedParquet(spark));
-            results[7][i] = testDecode(spark, silverUnindexed, new SpatialParquet(spark));
-            results[8][i] = testDecode(spark, flattenSilverUnindexed, new FlattenSpatialParquet(spark));
+            results[0][i] = 0;//testQuery(spark, wkbUnindexed ,false,new WKBIndexedParquet(spark));
+            results[1][i] = 0;//testQuery(spark, wkbIndexed,true,new WKBIndexedParquet(spark));
+            results[2][i] = 0;//testQuery(spark, silverUnindexed,false,new SpatialParquet(spark));
+            results[3][i] = 0;//testQuery(spark, silverIndexed, true, new SpatialParquet(spark));
+            results[4][i] = testQuery(spark, NFSPUnindexed,false, new NFSP(spark) );
+            results[5][i] = testQuery(spark, NFSPIndexed, true, new NFSP(spark) );
+            results[6][i] = 0;//testDecode(spark, wkbUnindexed, new WKBIndexedParquet(spark));
+            results[7][i] = 0;//testDecode(spark, silverUnindexed, new SpatialParquet(spark));
+            results[8][i] = testDecode(spark, NFSPUnindexed, new NFSP(spark));
 
         }
 
@@ -122,7 +128,7 @@ public class aubuildings {
                 "Flatten Unindexed"
         };
 
-        try (PrintWriter out = new PrintWriter("benchmark9_for_aubuildings.csv")) {
+        try (PrintWriter out = new PrintWriter("benchmarknfsp3_for_aubuildings.csv")) {
 
             out.print("Test");
 
@@ -217,9 +223,11 @@ public class aubuildings {
                 bboxFilter
         );
 
+        long t1 = System.currentTimeMillis();
+
         spark.sql(sql).show(false);
 
-        long t1 = System.currentTimeMillis();
+
 
         long duration = System.currentTimeMillis() - t1;
 

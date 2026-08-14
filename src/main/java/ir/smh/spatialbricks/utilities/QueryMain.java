@@ -2,6 +2,7 @@ package ir.smh.spatialbricks.utilities;
 
 
 import ir.smh.spatialbricks.config.SparkConfigLocal;
+import ir.smh.spatialbricks.udf.NFSP;
 import ir.smh.spatialbricks.udf.SpatialParquet;
 import ir.smh.spatialbricks.udf.UDFRegistry;
 import ir.smh.spatialbricks.udf.WKBIndexedParquet;
@@ -13,11 +14,14 @@ import org.apache.sedona.sql.utils.SedonaSQLRegistrator;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SaveMode;
+import org.apache.spark.sql.api.java.UDF1;
 import org.apache.spark.sql.catalyst.analysis.NoSuchTableException;
 import org.apache.spark.sql.catalyst.analysis.TableAlreadyExistsException;
 import org.apache.spark.sql.catalyst.parser.ParseException;
 import org.apache.spark.sql.types.DataTypes;
 import org.apache.spark.sql.types.StructType;
+import org.locationtech.jts.geom.Geometry;
+
 import static org.apache.spark.sql.functions.*;
 
 import java.io.IOException;
@@ -25,10 +29,10 @@ import java.io.IOException;
 public class QueryMain {
     public static void main(String[] args) throws IOException, NoSuchTableException, ParseException, TableAlreadyExistsException {
 
-        var spark = SparkConfigLocal.createSession("../datasets/nyc_taxi");
+        var spark = SparkConfigLocal.createSession("../datasets/portotaxi2");
         spark.sparkContext().setLogLevel("ERROR");
         SedonaContext.create(spark);
-        UDFRegistry udfRegistry=new SpatialParquet(spark);
+        UDFRegistry<?,?> udfRegistry=new NFSP(spark);
         udfRegistry.registerDecode();
         SedonaSQLRegistrator.registerAll(spark);
 //        spark.sql("""
@@ -37,33 +41,54 @@ public class QueryMain {
 //          FROM wkbIndexed.aubuildings
 //          LIMIT 20;
 //        """).show(false);
-        String path =   "../datasets/nyc_taxi/yellow_tripdata_2009-0?.parquet";
+//        String path = "../datasets/testgeometrycollection/Document.geojson";
 
-        Dataset<Row> df = spark.read().parquet(path);
+//        Dataset<Row> df = spark.read().parquet(path);
+//        UDF1<Geometry, Long> countCoordinates =
+//                geometry -> geometry == null ? 0L : (long) geometry.getNumPoints();
+//
+//        spark.udf().register(
+//                "countCoordinates",
+//                countCoordinates,
+//                org.apache.spark.sql.types.DataTypes.LongType
+//        );
+//
+//        spark.sql("""
+//    SELECT
+//        SUM(countCoordinates(decodeGeometry(geometry))) AS coordinate_count
+//    FROM NFSPIndexed.testgeometrycollection
+//""").show(100, false);
+        spark.sql("""
+    SELECT
+        SUM(size(geometry.x)) AS coordinate_count2
+    FROM NFSPIndexed.portotaxi
+""").show(100, false);
 
-        StructType geoJsonSchema = new StructType()
-                .add("type", "string")
-                .add("coordinates", DataTypes.createArrayType(DataTypes.DoubleType));
-
-        Dataset<Row> startPoints = df.select(
-                from_json(
-                        expr("ST_AsGeoJSON(ST_Point(Start_Lon, Start_Lat))"),
-                        geoJsonSchema
-                ).alias("geometry")
-        );
-
-        Dataset<Row> endPoints = df.select(
-                from_json(
-                        expr("ST_AsGeoJSON(ST_Point(End_Lon, End_Lat))"),
-                        geoJsonSchema
-                ).alias("geometry")
-        );
-
-        Dataset<Row> points = startPoints.union(endPoints);
-
-        points.write()
-                .mode(SaveMode.Overwrite)
-                .json("../datasets/nyc_taxi/points_ndjson");
+//
+//
+//        StructType geoJsonSchema = new StructType()
+//                .add("type", "string")
+//                .add("coordinates", DataTypes.createArrayType(DataTypes.DoubleType));
+//
+//        Dataset<Row> startPoints = df.select(
+//                from_json(
+//                        expr("ST_AsGeoJSON(ST_Point(Start_Lon, Start_Lat))"),
+//                        geoJsonSchema
+//                ).alias("geometry")
+//        );
+//
+//        Dataset<Row> endPoints = df.select(
+//                from_json(
+//                        expr("ST_AsGeoJSON(ST_Point(End_Lon, End_Lat))"),
+//                        geoJsonSchema
+//                ).alias("geometry")
+//        );
+//
+//        Dataset<Row> points = startPoints.union(endPoints);
+//
+//        points.write()
+//                .mode(SaveMode.Overwrite)
+//                .json("../datasets/nyc_taxi/points_ndjson");
 
 //        Table table = Spark3Util.loadIcebergTable(
 //                spark,

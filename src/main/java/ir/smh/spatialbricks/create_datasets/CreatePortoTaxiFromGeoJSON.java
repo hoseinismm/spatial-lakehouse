@@ -1,6 +1,7 @@
 package ir.smh.spatialbricks.create_datasets;
 
 import ir.smh.spatialbricks.encoder.converttogeometry.GeoJsonGeometricalAdapter;
+import ir.smh.spatialbricks.udf.NFSP;
 import ir.smh.spatialbricks.udf.WKBIndexedParquet;
 import ir.smh.spatialbricks.utilities.PowerPlanUtil;
 import ir.smh.spatialbricks.core.PipelineExecutor;
@@ -31,13 +32,15 @@ public class CreatePortoTaxiFromGeoJSON {
 
         SedonaContext.create(spark);
 
-        GeometryReader<?>  geoparqetFile= new GeoJsonGeometricalAdapter();
+        GeometryReader<?>  geoJsonFile= new GeoJsonGeometricalAdapter();
 
-        PipelineExecutor wkbSpatialWriting= new PipelineExecutor(spark,geoparqetFile, new WKBIndexedParquet(spark) );
+        PipelineExecutor wkbSpatialWriting = new PipelineExecutor(spark,geoJsonFile, new WKBIndexedParquet(spark) );
 
-        PipelineExecutor spatialWriting= new PipelineExecutor(spark,geoparqetFile );
+        PipelineExecutor spatialWriting = new PipelineExecutor(spark,geoJsonFile );
 
-        PipelineExecutor flattenSpatialWriting= new PipelineExecutor(spark,geoparqetFile, new FlattenSpatialParquet(spark));
+        PipelineExecutor flattenSpatialWriting = new PipelineExecutor(spark,geoJsonFile, new FlattenSpatialParquet(spark));
+
+        PipelineExecutor NFSPWriting = new PipelineExecutor(spark, geoJsonFile, new NFSP(spark));
 
         TableSpec wkbUnindexed = new TableSpec("wkbUnindexed", "portotaxi", folderpath);
 
@@ -50,6 +53,10 @@ public class CreatePortoTaxiFromGeoJSON {
         TableSpec flattenSilverUnindexed = new TableSpec("flattenSilverUnindexed", "portotaxi", folderpath);
 
         TableSpec flattenSilverIndexed = new TableSpec("flattenSilverIndexed", "portotaxi", folderpath);
+
+        TableSpec NFSPUnindexed = new TableSpec("NFSPUnindexed", "portotaxi", folderpath);
+
+        TableSpec NFSPIndexed =  new TableSpec("NFSPIndexed", "portotaxi", folderpath);
 
         long start = System.currentTimeMillis();
 
@@ -66,6 +73,10 @@ public class CreatePortoTaxiFromGeoJSON {
 //          flattenSpatialWriting.silverLayerWithoutBboxIndexing(flattenSilverUnindexed, path );
 
 //          flattenSpatialWriting.silverLayerWithBboxIndexing(flattenSilverIndexed,path, 150000L, 131072L);
+
+//          NFSPWriting.AddDataWithoutIndexing(NFSPUnindexed, path );
+
+          NFSPWriting.AddDataWithIndexing(NFSPIndexed,path, 150000L, 131072L);
 
         long duration = System.currentTimeMillis() - start;
 

@@ -48,6 +48,12 @@ public class SpatialReader_version4 implements Serializable {
 
         for (String line : samples) {
 
+//            System.out.println("JSON LENGTH = " + line.length());
+//            System.out.println("JSON = " + line);
+//
+//            System.out.println("LAST CHAR = "
+//                    + line.charAt(line.length() - 1));
+
             JsonNode root = mapper.readTree(line);
 
             JsonNode properties = root.get("properties");

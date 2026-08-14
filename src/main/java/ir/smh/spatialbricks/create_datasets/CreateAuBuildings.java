@@ -6,6 +6,7 @@ import ir.smh.spatialbricks.core.TableSpec;
 import ir.smh.spatialbricks.encoder.converttogeometry.GeometryReader;
 import ir.smh.spatialbricks.encoder.converttogeometry.GeoJsonGeometricalAdapter;
 import ir.smh.spatialbricks.udf.FlattenSpatialParquet;
+import ir.smh.spatialbricks.udf.NFSP;
 import ir.smh.spatialbricks.udf.SpatialParquet;
 import ir.smh.spatialbricks.udf.WKBIndexedParquet;
 import ir.smh.spatialbricks.utilities.PowerPlanUtil;
@@ -35,6 +36,9 @@ public class CreateAuBuildings {
 
                 GeometryReader<?> geoJsonFile = new GeoJsonGeometricalAdapter();
 
+                PipelineExecutor NFSPWriting =
+                        new PipelineExecutor(spark, geoJsonFile, new NFSP(spark));
+
                 PipelineExecutor spatialWriting =
                         new PipelineExecutor(spark, geoJsonFile, new SpatialParquet(spark));
 
@@ -44,6 +48,12 @@ public class CreateAuBuildings {
                 PipelineExecutor wkbWriting = new PipelineExecutor(spark, geoJsonFile, new WKBIndexedParquet(spark));
 
                 String path = "../datasets/aubuildings/AUBuildingsndjson.geojson";
+
+                TableSpec NFSPUnindexed =
+                        new TableSpec("NFSPUnindexed", "aubuildings", folderpath);
+
+                TableSpec NFSPIndexed =
+                        new TableSpec("NFSPIndexed", "aubuildings", folderpath);
 
                 TableSpec silverIndexed =
                         new TableSpec("silverIndexed", "aubuildings", folderpath);
@@ -75,9 +85,12 @@ public class CreateAuBuildings {
 
 //                spatialWriting.silverLayerWithBboxIndexing(silverIndexed, path, 150000L, 131072L);
 
-                flattenSpatialWriting.AddDataWithoutIndexing(flattenSilverUnindexed, path);
+//                flattenSpatialWriting.AddDataWithoutIndexing(flattenSilverUnindexed, path);
 
 //                flattenSpatialWriting.silverLayerWithBboxIndexing(flattenSilverIndexed, path, 150000L, 131072L);
+
+                NFSPWriting.AddDataWithoutIndexing(NFSPUnindexed, path);
+//                NFSPWriting.AddDataWithIndexing(NFSPIndexed, path, 150000L, 131072L);
 
                 long duration = System.currentTimeMillis() - startTime;
 

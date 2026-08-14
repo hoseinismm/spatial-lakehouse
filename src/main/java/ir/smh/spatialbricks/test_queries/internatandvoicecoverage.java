@@ -1,12 +1,9 @@
 package ir.smh.spatialbricks.test_queries;
 
 import ir.smh.spatialbricks.config.SparkConfigLocal;
-import ir.smh.spatialbricks.udf.WKBIndexedParquet;
+import ir.smh.spatialbricks.udf.*;
 import ir.smh.spatialbricks.utilities.PowerPlanUtil;
 import ir.smh.spatialbricks.core.TableSpec;
-import ir.smh.spatialbricks.udf.FlattenSpatialParquet;
-import ir.smh.spatialbricks.udf.SpatialParquet;
-import ir.smh.spatialbricks.udf.UDFRegistry;
 import org.apache.sedona.spark.SedonaContext;
 import org.apache.sedona.sql.utils.SedonaSQLRegistrator;
 import org.apache.spark.sql.SparkSession;
@@ -27,6 +24,9 @@ public class internatandvoicecoverage {
     private static final UDFRegistry<?, ?> flattenRegistry =
             new FlattenSpatialParquet(spark);
 
+    private static final UDFRegistry<?, ?> NFSPRegistry =
+            new NFSP(spark);
+
 
     private static final TableSpec wkbUnindexed =
             new TableSpec("wkbUnindexed", "internet_and_voice_coverage", "");
@@ -45,6 +45,12 @@ public class internatandvoicecoverage {
 
     private static final TableSpec flattenSilverIndexed =
             new TableSpec("flattenSilverIndexed", "internet_and_voice_coverage", "");
+
+    private static final TableSpec NFSPUnindexed =
+            new TableSpec("NFSPUnindexed", "internet_and_voice_coverage", "");
+
+    private static final TableSpec NFSPIndexed =
+            new TableSpec("NFSPIndexed", "internet_and_voice_coverage", "");
 
     public static void main(String[] args) throws Exception {
 
@@ -76,50 +82,59 @@ public class internatandvoicecoverage {
 
     private static long[][] runBenchmarks( int runs ) throws Exception {
 
-        long[][] results = new long[9][runs];
+        long[][] results = new long[12][runs];
 
         for (int i = 0; i < runs; i++) {
 
                 System.out.println("Run " + (i + 1));
 
 
-                results[0][i] = testQuery(wkbUnindexed, wkbRegistry, false);
+                results[0][i] =0;// testQuery(wkbUnindexed, wkbRegistry, false);
                 spark.catalog().clearCache();
                 System.gc();
                 Thread.sleep(3000);
-                results[1][i] = testQuery( wkbIndexed, wkbRegistry, true);
+                results[1][i] =0;// testQuery(wkbIndexed, wkbRegistry, true);
                 spark.catalog().clearCache();
                 System.gc();
                 Thread.sleep(3000);
-                results[2][i] = testQuery( silverUnindexed, spatialRegistry, false);
+                results[2][i] =0;// testQuery(silverUnindexed, spatialRegistry, false);
                 spark.catalog().clearCache();
                 System.gc();
                 Thread.sleep(3000);
-                results[3][i] = testQuery(silverIndexed, spatialRegistry, true);
+                results[3][i] =0;// testQuery(silverIndexed, spatialRegistry, true);
                 spark.catalog().clearCache();
                 System.gc();
                 Thread.sleep(3000);
-                results[4][i] = testQuery(flattenSilverUnindexed, flattenRegistry, false);
+                results[4][i] =0;// testQuery(flattenSilverUnindexed, flattenRegistry, false);
                 spark.catalog().clearCache();
                 System.gc();
                 Thread.sleep(3000);
-                results[5][i] = testQuery(flattenSilverIndexed, flattenRegistry, true);
+                results[5][i] =0;// testQuery(flattenSilverIndexed, flattenRegistry, true);
+                spark.catalog().clearCache();
+                System.gc();
+                results[6][i] = testQuery(NFSPUnindexed, NFSPRegistry, false);
+                spark.catalog().clearCache();
+                System.gc();
+                results[7][i] = testQuery(NFSPIndexed, NFSPRegistry, true);
                 spark.catalog().clearCache();
                 System.gc();
                 Thread.sleep(3000);
-                results[6][i] = testDecode(wkbUnindexed, wkbRegistry);
+                results[8][i] =0;// testDecode(wkbUnindexed, wkbRegistry);
                 spark.catalog().clearCache();
                 System.gc();
                 Thread.sleep(3000);
-                results[7][i] = testDecode(silverUnindexed, spatialRegistry);
+                results[9][i] =0;// testDecode(silverUnindexed, spatialRegistry);
                 spark.catalog().clearCache();
                 System.gc();
                 Thread.sleep(3000);
-                results[8][i] = testDecode( flattenSilverUnindexed, flattenRegistry);
+                results[10][i] =0;// testDecode(flattenSilverUnindexed, flattenRegistry);
                 spark.catalog().clearCache();
                 System.gc();
                 Thread.sleep(3000);
-
+                results[11][i] = testDecode(NFSPUnindexed, NFSPRegistry);
+                spark.catalog().clearCache();
+                System.gc();
+                Thread.sleep(3000);
         }
 
         return results;
@@ -135,13 +150,16 @@ public class internatandvoicecoverage {
                 "Spatial Indexed",
                 "Flatten Unindexed",
                 "Flatten Indexed",
+                "NFSP Unindexed",
+                "NFSP Indexed",
                 "WKB Unindexed",
                 "Spatial Unindexed",
-                "Flatten Unindexed"
+                "Flatten Unindexed",
+                "NFSP Unindexed"
 
         };
 
-        try (PrintWriter out = new PrintWriter("benchmark12_internet_and_voice_coverage6.csv")) {
+        try (PrintWriter out = new PrintWriter("benchmarknfsp_internet_and_voice_coverage6.csv")) {
 
             out.print("Test");
 

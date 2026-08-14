@@ -2,6 +2,7 @@ package ir.smh.spatialbricks.create_datasets;
 
 import ir.smh.spatialbricks.encoder.converttogeometry.GeometryReader;
 import ir.smh.spatialbricks.encoder.converttogeometry.WKBReaderAdapter;
+import ir.smh.spatialbricks.udf.NFSP;
 import ir.smh.spatialbricks.udf.WKBIndexedParquet;
 import ir.smh.spatialbricks.utilities.PowerPlanUtil;
 import ir.smh.spatialbricks.core.PipelineExecutor;
@@ -41,6 +42,8 @@ public class CreateNYCtaxi {
 
         PipelineExecutor wkbWriting = new PipelineExecutor(spark, null, new WKBIndexedParquet(spark));
 
+        PipelineExecutor NFSPWriting = new PipelineExecutor(spark, null, new NFSP(spark));
+
 
         TableSpec wkbUnindexed = new TableSpec("wkbUnindexed", "nyc_taxi", folderpath);
         TableSpec wkbIndexed = new TableSpec("wkbIndexed", "nyc_taxi", folderpath);
@@ -50,6 +53,9 @@ public class CreateNYCtaxi {
         TableSpec flattenSilverIndexed = new TableSpec("flattenSilverIndexed", "nyc_taxi",folderpath);
         TableSpec Sorted = new TableSpec("Sorted", "nyc_taxi","");
         TableSpec flattenSilverIndexedIncremental = new TableSpec("flattenSilverIndexedIncremental", "nyc_taxi",folderpath);
+        TableSpec NFSPUnindexed = new TableSpec("NFSPUnindexed", "nyc_taxi", folderpath);
+        TableSpec NFSPIndexed =  new TableSpec("NFSPIndexed", "nyc_taxi", folderpath);
+
 
         String path =   "../datasets/nyc_taxi/yellow_tripdata_2009-0?.parquet";
         //String path= "../datasets/nyc_taxi/output_parts/part_*.parquet";
@@ -69,8 +75,12 @@ public class CreateNYCtaxi {
 //        spatialWriting.customWriterWithoutBboxIndex(silverUnindexed,path, "Start_Lon","Start_Lat");
 //        spatialWriting.customWriterWithoutBboxIndex(silverUnindexed,path, "End_Lon","End_Lat");
 
-        flattenspatialwriting.xyToPintTableWithIndexing(flattenSilverIndexed,path,150000L, 131072L, "Start_Lon","Start_Lat");
-        flattenspatialwriting.xyToPintTableWithIndexing(flattenSilverIndexed,path,150000L, 131072L, "End_Lon","End_Lat");
+//        flattenspatialwriting.xyToPintTableWithIndexing(flattenSilverIndexed,path,150000L, 131072L, "Start_Lon","Start_Lat");
+//        flattenspatialwriting.xyToPintTableWithIndexing(flattenSilverIndexed,path,150000L, 131072L, "End_Lon","End_Lat");
+        NFSPWriting.xyToPintTableWithIndexing(NFSPIndexed,path,150000L, 131072L, "Start_Lon","Start_Lat");
+        NFSPWriting.xyToPintTableWithIndexing(NFSPIndexed,path,150000L, 131072L, "End_Lon","End_Lat");
+//        NFSPWriting.xyToPointTableWithoutIndexing(NFSPUnindexed,path, "Start_Lon","Start_Lat");
+//        NFSPWriting.xyToPointTableWithoutIndexing(NFSPUnindexed,path, "End_Lon","End_Lat");
 //                Table table = Spark3Util.loadIcebergTable(
 //                        spark,
 //                        "flattenSilverIndexed.nyc_taxi");

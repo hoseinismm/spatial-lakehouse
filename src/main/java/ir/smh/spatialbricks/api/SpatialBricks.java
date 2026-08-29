@@ -46,6 +46,7 @@ public class SpatialBricks {
                 case SP -> new SP(spark);
                 case FSP -> new FSP(spark);
                 case NFSP -> new NFSP(spark);
+                case GeoLake -> new GeoLake(spark);
             };
         }
     }

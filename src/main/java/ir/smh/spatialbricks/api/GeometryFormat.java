@@ -4,5 +4,6 @@ public enum GeometryFormat {
     WKB,
     SP,
     FSP,
-    NFSP
+    NFSP,
+    GeoLake
 }

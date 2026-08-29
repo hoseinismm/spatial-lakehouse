@@ -3,12 +3,20 @@ package ir.smh.spatialbricks.decoder;
 import org.apache.spark.sql.Row;
 import org.locationtech.jts.geom.*;
 
-import java.util.ArrayList;
 import java.util.List;
 
 public class FlattenSpatialParquetDecoder {
 
-    private static final GeometryFactory GF = new GeometryFactory();
+    private static final GeometryFactory GF =
+            new GeometryFactory();
+
+    private static final CoordinateSequenceFactory CSF =
+            GF.getCoordinateSequenceFactory();
+
+
+    // =========================================================
+    // ENTRY POINT
+    // =========================================================
 
     public static Geometry geometryToJTS(Row row) {
 
@@ -18,232 +26,489 @@ public class FlattenSpatialParquetDecoder {
 
         int type = row.getInt(0);
 
-        double[] x = toDoubleArray(row.getList(1));
-        double[] y = toDoubleArray(row.getList(2));
-        int[] parts = toIntArray(row.getList(3));
+        if (type == 1) {
+            return decodePoint(row);
+        }
 
-        CoordinateSequenceFactory csf =
-                GF.getCoordinateSequenceFactory();
+        double[] x =
+                toDoubleArray(row.getList(1));
+
+        double[] y =
+                toDoubleArray(row.getList(2));
+
+        List<Integer> parts =
+                row.getList(3);
+
+        if (x.length != y.length) {
+            throw new IllegalArgumentException(
+                    "X and Y arrays have different lengths: "
+                            + x.length
+                            + " != "
+                            + y.length
+            );
+        }
+
+        DecodeContext context =
+                new DecodeContext(
+                        x,
+                        y,
+                        parts
+                );
 
         return switch (type) {
 
-            case 1 -> { // Point
-
-                CoordinateSequence seq = csf.create(1, 2);
-                seq.setOrdinate(0, 0, x[0]);
-                seq.setOrdinate(0, 1, y[0]);
-
-                yield GF.createPoint(seq);
-            }
-
-            case 2 -> { // LineString
-
-                CoordinateSequence seq =
-                        createSequence(csf, x, y, 0, x.length);
-
-                yield GF.createLineString(seq);
-            }
-
-            case 3 -> decodePolygon(parts, x, y, csf);
-
-            case 4 -> decodeMultiPoint(x, y);
-
-            case 5 -> decodeMultiLineString(parts, x, y, csf);
-
-            case 6 -> decodeMultiPolygon(parts, x, y, csf);
+            case 2 -> decodeLineString(context);
+            case 3 -> decodePolygon(context);
+            case 4 -> decodeMultiPoint(context);
+            case 5 -> decodeMultiLineString(context);
+            case 6 -> decodeMultiPolygon(context);
 
             default -> null;
         };
     }
 
+
+    // =========================================================
+    // DECODE CONTEXT
+    // =========================================================
+
+    private static class DecodeContext {
+
+        final double[] x;
+        final double[] y;
+        final List<Integer> parts;
+
+        DecodeContext(
+                double[] x,
+                double[] y,
+                List<Integer> parts) {
+
+            this.x = x;
+            this.y = y;
+            this.parts = parts;
+        }
+    }
+
+
+    // =========================================================
+    // POINT
+    // =========================================================
+
+    private static Point decodePoint(Row row) {
+
+        List<Double> x =
+                row.getList(1);
+
+        List<Double> y =
+                row.getList(2);
+
+        if (x == null || y == null ||
+                x.isEmpty() || y.isEmpty()) {
+
+            return GF.createPoint();
+        }
+
+        return GF.createPoint(
+                new Coordinate(
+                        x.get(0),
+                        y.get(0)
+                )
+        );
+    }
+
+
+    // =========================================================
+    // LINESTRING
+    // =========================================================
+
+    private static LineString decodeLineString(
+            DecodeContext context) {
+
+        if (context.x.length == 0) {
+            return GF.createLineString();
+        }
+
+        CoordinateSequence seq =
+                createSequence(
+                        context,
+                        0,
+                        context.x.length
+                );
+
+        return GF.createLineString(seq);
+    }
+
+
+    // =========================================================
+    // MULTIPOINT
+    // =========================================================
+
     private static MultiPoint decodeMultiPoint(
-            double[] x,
-            double[] y) {
+            DecodeContext context) {
 
-        Point[] points = new Point[x.length];
+        int size =
+                context.x.length;
 
-        for (int i = 0; i < x.length; i++) {
+        if (size == 0) {
+            return GF.createMultiPoint();
+        }
 
-            CoordinateSequence seq = GF.getCoordinateSequenceFactory().create(1, 2);
-            seq.setOrdinate(0, 0, x[i]);
-            seq.setOrdinate(0, 1, y[i]);
+        Point[] points =
+                new Point[size];
 
-            points[i] = GF.createPoint(seq);
+        for (int i = 0; i < size; i++) {
+
+            CoordinateSequence seq =
+                    createSequence(
+                            context,
+                            i,
+                            i + 1
+                    );
+
+            points[i] =
+                    GF.createPoint(seq);
         }
 
         return GF.createMultiPoint(points);
     }
 
+
+    // =========================================================
+    // MULTILINESTRING
+    // =========================================================
+
     private static MultiLineString decodeMultiLineString(
-            int[] parts,
-            double[] x,
-            double[] y,
-            CoordinateSequenceFactory csf) {
+            DecodeContext context) {
 
-        LineString[] lines = new LineString[parts.length];
+        int count =
+                context.parts.size();
 
-        for (int i = 0; i < parts.length; i++) {
+        if (count == 0) {
+            return GF.createMultiLineString();
+        }
 
-            int start = Math.abs(parts[i]);
+        LineString[] lines =
+                new LineString[count];
 
-            int end = (i + 1 < parts.length)
-                    ? Math.abs(parts[i + 1])
-                    : x.length;
+        int coordinateCount =
+                context.x.length;
+
+        for (int i = 0; i < count; i++) {
+
+            int part =
+                    context.parts.get(i);
+
+            int start =
+                    Math.abs(part);
+
+            int end =
+                    (i + 1 < count)
+                            ? Math.abs(
+                            context.parts.get(i + 1)
+                    )
+                            : coordinateCount;
 
             CoordinateSequence seq =
-                    createSequence(csf, x, y, start, end);
+                    createSequence(
+                            context,
+                            start,
+                            end
+                    );
 
-            lines[i] = GF.createLineString(seq);
+            lines[i] =
+                    GF.createLineString(seq);
         }
 
         return GF.createMultiLineString(lines);
     }
 
+
+    // =========================================================
+    // POLYGON
+    // =========================================================
+
     private static Polygon decodePolygon(
-            int[] parts,
-            double[] x,
-            double[] y,
-            CoordinateSequenceFactory csf) {
+            DecodeContext context) {
+
+        int partsCount =
+                context.parts.size();
+
+        if (partsCount == 0) {
+            return GF.createPolygon();
+        }
+        int start =0;
 
         LinearRing shell = null;
-        LinearRing[] holesTmp = new LinearRing[Math.max(0, parts.length - 1)];
-        int h = 0;
 
-        for (int i = 0; i < parts.length; i++) {
+        LinearRing[] holes = null;
 
-            int start = Math.abs(parts[i]);
+        if (partsCount > 1) {
+            holes = new LinearRing[partsCount-1];
+        }
 
-            int end = (i + 1 < parts.length)
-                    ? Math.abs(parts[i + 1])
-                    : x.length;
+        for (int i = 0; i < partsCount; i++) {
 
-            CoordinateSequence seq =
-                    createSequence(csf, x, y, start, end);
+            int end;
 
-            LinearRing ring = GF.createLinearRing(seq);
-
-            if (parts[i] >= 0) {
-                shell = ring;
+            if (i + 1 < partsCount) {
+                end = Math.abs(context.parts.get(i + 1));
             } else {
-                holesTmp[h++] = ring;
+                end = context.x.length;
             }
-        }
 
-        LinearRing[] holes;
-
-        if (h == 0) {
-            return GF.createPolygon(shell);
-        } else {
-            holes = new LinearRing[h];
-            System.arraycopy(holesTmp, 0, holes, 0, h);
-            return GF.createPolygon(shell, holes);
-        }
-    }
-
-    private static MultiPolygon decodeMultiPolygon(
-            int[] parts,
-            double[] x,
-            double[] y,
-            CoordinateSequenceFactory csf) {
-
-        List<Polygon> polygons = new ArrayList<>();
-
-        LinearRing currentShell = null;
-        List<LinearRing> currentHoles = new ArrayList<>();
-
-        for (int i = 0; i < parts.length; i++) {
-
-            int start = Math.abs(parts[i]);
-
-            int end = (i + 1 < parts.length)
-                    ? Math.abs(parts[i + 1])
-                    : x.length;
-
-            CoordinateSequence seq =
-                    createSequence(csf, x, y, start, end);
-
-            LinearRing ring = GF.createLinearRing(seq);
-
-            if (parts[i] >= 0) {
-
-                if (currentShell != null) {
-                    polygons.add(
-                            GF.createPolygon(
-                                    currentShell,
-                                    currentHoles.toArray(
-                                            new LinearRing[0]))
+            LinearRing ring =
+                    GF.createLinearRing(
+                            createSequence(
+                                    context,
+                                    start,
+                                    end
+                            )
                     );
+
+
+            if (i==0) {
+
+                shell = ring;
+                if (partsCount ==1) {
+                    return GF.createPolygon(shell);
                 }
 
-                currentShell = ring;
-                currentHoles.clear();
 
             } else {
 
-                currentHoles.add(ring);
+                holes[i-1] =
+                        ring;
+            }
+            start = end;
+        }
+
+
+        return GF.createPolygon(
+                shell,
+                holes
+        );
+
+    }
+
+
+    // =========================================================
+    // MULTIPOLYGON
+    // =========================================================
+
+    private static MultiPolygon decodeMultiPolygon(
+            DecodeContext context) {
+
+        int partsCount =
+                context.parts.size();
+
+        if (partsCount == 0) {
+            return GF.createMultiPolygon();
+        }
+
+        // Number of shells = number of polygons
+        int polygonCount = 0;
+
+        for (int part : context.parts) {
+
+            if (part >= 0) {
+                polygonCount++;
             }
         }
 
-        if (currentShell != null) {
-            polygons.add(
-                    GF.createPolygon(
-                            currentShell,
-                            currentHoles.toArray(
-                                    new LinearRing[0]))
-            );
+        Polygon[] polygons =
+                new Polygon[polygonCount];
+
+        int polygonIndex = 0;
+
+        int holeCount = 0;
+
+        LinearRing currentShell = null;
+
+        LinearRing[] holes = null;
+
+        int holeIndex = 0;
+
+        int coordinateCount =
+                context.x.length;
+
+        int end = 0;
+
+        for (int i = 0;
+             i < partsCount;
+             i++) {
+
+            /*
+             * The start of the current ring is the
+             * signed end of the previous ring.
+             */
+            int start = end;
+
+            /*
+             * Keep the sign of the next part because
+             * it identifies shell/hole in the next iteration.
+             */
+            end =
+                    (i + 1 < partsCount)
+                            ? context.parts.get(i + 1)
+                            : coordinateCount;
+
+            LinearRing ring =
+                    GF.createLinearRing(
+                            createSequence(
+                                    context,
+                                    Math.abs(start),
+                                    Math.abs(end)
+                            )
+                    );
+
+            // -----------------------------------------------------
+            // SHELL
+            // -----------------------------------------------------
+
+            if (start >= 0) {
+
+                currentShell = ring;
+
+                holeCount = 0;
+
+                /*
+                 * Count holes belonging to this shell.
+                 */
+                for (int j = i + 1;
+                     j < partsCount;
+                     j++) {
+
+                    if (context.parts.get(j) >= 0) {
+                        break;
+                    }
+
+                    holeCount++;
+                }
+
+                if (holeCount == 0) {
+
+                    polygons[polygonIndex++] =
+                            GF.createPolygon(
+                                    currentShell
+                            );
+
+                } else {
+
+                    holes =
+                            new LinearRing[holeCount];
+
+                    holeIndex = 0;
+                }
+
+            }
+
+            // -----------------------------------------------------
+            // HOLE
+            // -----------------------------------------------------
+
+            else {
+
+                if (holes != null) {
+
+                    holes[holeIndex++] =
+                            ring;
+
+                    if (holeIndex == holeCount) {
+
+                        polygons[polygonIndex++] =
+                                GF.createPolygon(
+                                        currentShell,
+                                        holes
+                                );
+
+                        holes = null;
+                        holeIndex = 0;
+                        holeCount = 0;
+                    }
+                }
+            }
         }
 
-        return GF.createMultiPolygon(
-                polygons.toArray(new Polygon[0]));
+        return GF.createMultiPolygon(polygons);
     }
 
+
+    // =========================================================
+    // CREATE COORDINATE SEQUENCE
+    // =========================================================
+
     private static CoordinateSequence createSequence(
-            CoordinateSequenceFactory csf,
-            double[] x,
-            double[] y,
+            DecodeContext context,
             int start,
             int end) {
 
-        int size = end - start;
+        int size =
+                end - start;
 
-        CoordinateSequence seq = csf.create(size, 2);
+        CoordinateSequence seq =
+                CSF.create(
+                        size,
+                        2
+                );
 
-        for (int i = 0; i < size; i++) {
+        for (int i = 0;
+             i < size;
+             i++) {
 
-            seq.setOrdinate(i, 0, x[start + i]);
-            seq.setOrdinate(i, 1, y[start + i]);
+            int index =
+                    start + i;
+
+            seq.setOrdinate(
+                    i,
+                    0,
+                    context.x[index]
+            );
+
+            seq.setOrdinate(
+                    i,
+                    1,
+                    context.y[index]
+            );
         }
 
         return seq;
     }
 
-    private static double[] toDoubleArray(List<Double> list) {
 
-        if (list == null || list.isEmpty()) {
+    // =========================================================
+    // LIST -> DOUBLE ARRAY
+    // =========================================================
+
+    private static double[] toDoubleArray(
+            List<Double> list) {
+
+        if (list == null ||
+                list.isEmpty()) {
+
             return new double[0];
         }
 
-        double[] arr = new double[list.size()];
+        double[] array =
+                new double[list.size()];
 
-        for (int i = 0; i < arr.length; i++) {
-            arr[i] = list.get(i);
+        for (int i = 0;
+             i < array.length;
+             i++) {
+
+            Double value =
+                    list.get(i);
+
+            if (value == null) {
+
+                throw new IllegalArgumentException(
+                        "X/Y array contains null at index "
+                                + i
+                );
+            }
+
+            array[i] = value;
         }
 
-        return arr;
-    }
-
-    private static int[] toIntArray(List<Integer> list) {
-
-        if (list == null || list.isEmpty()) {
-            return new int[0];
-        }
-
-        int[] arr = new int[list.size()];
-
-        for (int i = 0; i < arr.length; i++) {
-            arr[i] = list.get(i);
-        }
-
-        return arr;
+        return array;
     }
 }

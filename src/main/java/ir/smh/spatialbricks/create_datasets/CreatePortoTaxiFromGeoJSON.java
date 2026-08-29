@@ -1,14 +1,15 @@
 package ir.smh.spatialbricks.create_datasets;
 
 import ir.smh.spatialbricks.encoder.converttogeometry.GeoJsonGeometricalAdapter;
+import ir.smh.spatialbricks.udf.GeoLake;
 import ir.smh.spatialbricks.udf.NFSP;
-import ir.smh.spatialbricks.udf.WKBIndexedParquet;
+import ir.smh.spatialbricks.udf.WKB;
 import ir.smh.spatialbricks.utilities.PowerPlanUtil;
 import ir.smh.spatialbricks.core.PipelineExecutor;
 import ir.smh.spatialbricks.core.TableSpec;
 import ir.smh.spatialbricks.config.SparkConfigLocal;
 import ir.smh.spatialbricks.encoder.converttogeometry.GeometryReader;
-import ir.smh.spatialbricks.udf.FlattenSpatialParquet;
+import ir.smh.spatialbricks.udf.FSP;
 
 import org.apache.sedona.spark.SedonaContext;
 import org.apache.spark.sql.catalyst.analysis.NoSuchTableException;
@@ -34,13 +35,15 @@ public class CreatePortoTaxiFromGeoJSON {
 
         GeometryReader<?>  geoJsonFile= new GeoJsonGeometricalAdapter();
 
-        PipelineExecutor wkbSpatialWriting = new PipelineExecutor(spark,geoJsonFile, new WKBIndexedParquet(spark) );
+        PipelineExecutor wkbSpatialWriting = new PipelineExecutor(spark,geoJsonFile, new WKB(spark) );
 
         PipelineExecutor spatialWriting = new PipelineExecutor(spark,geoJsonFile );
 
-        PipelineExecutor flattenSpatialWriting = new PipelineExecutor(spark,geoJsonFile, new FlattenSpatialParquet(spark));
+        PipelineExecutor flattenSpatialWriting = new PipelineExecutor(spark,geoJsonFile, new FSP(spark));
 
         PipelineExecutor NFSPWriting = new PipelineExecutor(spark, geoJsonFile, new NFSP(spark));
+
+        PipelineExecutor GeoLakeWriting = new PipelineExecutor(spark, geoJsonFile, new GeoLake(spark));
 
         TableSpec wkbUnindexed = new TableSpec("wkbUnindexed", "portotaxi", folderpath);
 
@@ -58,6 +61,10 @@ public class CreatePortoTaxiFromGeoJSON {
 
         TableSpec NFSPIndexed =  new TableSpec("NFSPIndexed", "portotaxi", folderpath);
 
+        TableSpec GeoLakeUnindexed = new TableSpec("GeoLakeUnindexed", "portotaxi", folderpath);
+
+        TableSpec GeoLakeIndexed =  new TableSpec("GeoLakeIndexed", "portotaxi", folderpath);
+
         long start = System.currentTimeMillis();
 
             String path ="../datasets/portotaxi2/portotaxindjson.geojson";
@@ -66,17 +73,21 @@ public class CreatePortoTaxiFromGeoJSON {
 
 //          wkbSpatialWriting.silverLayerWithBboxIndexing(wkbIndexed,path, 150000L, 131072L);
 
-//          spatialWriting.silverLayerWithoutBboxIndexing(silverUnindexed, path );
+//          spatialWriting.AddDataWithoutIndexing(silverUnindexed, path );
 
-//          spatialWriting.silverLayerWithBboxIndexing(silverIndexed,path, 150000L, 131072L);
+//          spatialWriting.AddDataWithIndexing(silverIndexed,path, 150000L, 131072L);
 
-//          flattenSpatialWriting.silverLayerWithoutBboxIndexing(flattenSilverUnindexed, path );
+//          flattenSpatialWriting.AddDataWithoutIndexing(flattenSilverUnindexed, path );
 
-//          flattenSpatialWriting.silverLayerWithBboxIndexing(flattenSilverIndexed,path, 150000L, 131072L);
+//          flattenSpatialWriting.AddDataWithIndexing(flattenSilverIndexed,path, 150000L, 131072L);
 
 //          NFSPWriting.AddDataWithoutIndexing(NFSPUnindexed, path );
 
-          NFSPWriting.AddDataWithIndexing(NFSPIndexed,path, 150000L, 131072L);
+//          NFSPWriting.AddDataWithIndexing(NFSPIndexed,path, 150000L, 131072L);
+
+            GeoLakeWriting.AddDataWithoutIndexing(GeoLakeUnindexed, path );
+
+//          GeoLakeWriting.AddDataWithIndexing(GeoLakeIndexed,path, 150000L, 131072L);
 
         long duration = System.currentTimeMillis() - start;
 

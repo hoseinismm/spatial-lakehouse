@@ -19,6 +19,7 @@ public class SparkConfig {
                 .config("spark.sql.streaming.metricsEnabled", "false")
                 .master("local[*]")
                 .getOrCreate();
+
     }
 }
 

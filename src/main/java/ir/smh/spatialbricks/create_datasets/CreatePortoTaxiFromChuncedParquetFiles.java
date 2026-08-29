@@ -5,7 +5,7 @@ import ir.smh.spatialbricks.core.PipelineExecutor;
 import ir.smh.spatialbricks.core.TableSpec;
 import ir.smh.spatialbricks.config.SparkConfigLocal;
 import ir.smh.spatialbricks.encoder.converttogeometry.GeometryReader;
-import ir.smh.spatialbricks.udf.FlattenSpatialParquet;
+import ir.smh.spatialbricks.udf.FSP;
 import ir.smh.spatialbricks.udf.UDFRegistry;
 import ir.smh.spatialbricks.encoder.converttogeometry.WKBReaderAdapter;
 import org.apache.sedona.spark.SedonaContext;
@@ -31,7 +31,7 @@ public class CreatePortoTaxiFromChuncedParquetFiles {
 
         GeometryReader<?>  geoparqetFile= new WKBReaderAdapter();
 
-        UDFRegistry udfRegistry=new FlattenSpatialParquet(spark);
+        UDFRegistry udfRegistry=new FSP(spark);
 
         PipelineExecutor spatialWriting= new PipelineExecutor(spark,geoparqetFile );
 

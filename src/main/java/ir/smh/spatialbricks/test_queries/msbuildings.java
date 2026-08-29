@@ -1,6 +1,5 @@
 package ir.smh.spatialbricks.test_queries;
 
-import ir.smh.spatialbricks.config.SparkConfig;
 import ir.smh.spatialbricks.udf.*;
 import ir.smh.spatialbricks.utilities.PowerPlanUtil;
 import ir.smh.spatialbricks.core.TableSpec;
@@ -23,16 +22,19 @@ public class msbuildings {
     private  static final SparkSession spark =  SparkConfigLocal.createSession("../datasets/msbuildings");
 
     private static final UDFRegistry<?, ?> wkbRegistry =
-            new WKBIndexedParquet(spark);
+            new WKB(spark);
 
     private static final UDFRegistry<?, ?> spatialRegistry =
-            new SpatialParquet(spark);
+            new SP(spark);
 
     private static final UDFRegistry<?, ?> flattenRegistry =
-            new FlattenSpatialParquet(spark);
+            new FSP(spark);
 
     private static final UDFRegistry<?, ?> NFSPRegistry =
             new NFSP(spark);
+
+    private static final UDFRegistry<?, ?> GeoLakeRegistry =
+            new GeoLake(spark);
 
 
     private static final TableSpec wkbUnindexed =
@@ -59,12 +61,18 @@ public class msbuildings {
     private static final TableSpec NFSPUnindexed =
             new TableSpec("NFSPUnindexed", "msbuildings", "");
 
+    private static final TableSpec GeoLakeIndexed =
+            new TableSpec("GeoLakeIndexed", "msbuildings", "");
+
+    private static final TableSpec GeoLakeUnindexed =
+            new TableSpec("GeoLakeUnindexed", "msbuildings", "");
+
     public static void main(String[] args) throws Exception {
 
         try {
 
             PowerPlanUtil.setPowerPlan(PowerPlanUtil.SPARK_TEST);
-            final int runs = 36;
+            final int runs = 2;
 
             try {
 
@@ -86,24 +94,27 @@ public class msbuildings {
 
     private static long[][] runBenchmarks( int runs ) throws Exception {
 
-        long[][] results = new long[12][runs];
+        long[][] results = new long[15][runs];
 
         for (int i = 0; i < runs; i++) {
 
             System.out.println("Run " + (i + 1));
 
-            results[0][i] =0;// testQuery(wkbUnindexed,false,wkbRegistry);
+            results[0][i] = testQuery(wkbUnindexed,false,wkbRegistry);
             results[1][i] = testQuery( wkbIndexed, true, wkbRegistry);
-            results[2][i] =0;// testQuery( silverUnindexed,false,spatialRegistry);
+            results[2][i] = testQuery( silverUnindexed,false,spatialRegistry);
             results[3][i] = testQuery( silverIndexed, true, spatialRegistry);
-            results[4][i] =0;// testQuery( flattenSilverUnindexed,false, flattenRegistry);
+            results[4][i] = testQuery( flattenSilverUnindexed,false, flattenRegistry);
             results[5][i] = testQuery( flattenSilverIndexed, true, flattenRegistry);
-            results[6][i] =0;// testQuery( NFSPUnindexed,false, NFSPRegistry);
+            results[6][i] = testQuery( NFSPUnindexed,false, NFSPRegistry);
             results[7][i] = testQuery( NFSPIndexed, true, NFSPRegistry);
-            results[8][i] =0;// testDecode( wkbUnindexed, wkbRegistry);
-            results[9][i] =0;// testDecode( silverUnindexed, spatialRegistry);
-            results[10][i] =0;// testDecode( flattenSilverUnindexed, flattenRegistry);
-            results[11][i] =0;// testDecode( NFSPUnindexed, NFSPRegistry);
+            results[8][i] = testQuery( GeoLakeUnindexed,false, GeoLakeRegistry);
+            results[9][i] = testQuery( GeoLakeIndexed, true, GeoLakeRegistry);
+            results[10][i] = testDecode( wkbUnindexed, wkbRegistry);
+            results[11][i] = testDecode( silverUnindexed, spatialRegistry);
+            results[12][i] = testDecode( flattenSilverUnindexed, flattenRegistry);
+            results[13][i] = testDecode( NFSPUnindexed, NFSPRegistry);
+            results[14][i] = testDecode( GeoLakeUnindexed, GeoLakeRegistry);
 
         }
 
@@ -122,14 +133,17 @@ public class msbuildings {
                 "Flatten Indexed",
                 "NFSP Unindexed",
                 "NFSP Indexed",
+                "GeoLake Unindexed",
+                "GeoLake Indexed",
                 "WKB Unindexed",
                 "Spatial Unindexed",
                 "Flatten Unindexed",
                 "NFSP Unindexed",
+                "GeoLake Unindexed"
 
         };
 
-        try (PrintWriter out = new PrintWriter("benchmark_indexed_msbuildings.csv")) {
+        try (PrintWriter out = new PrintWriter("../datasets/msbuildings/benchmark2_msbuildings.csv")) {
 
             out.print("Test");
 
@@ -218,7 +232,7 @@ public class msbuildings {
         long start = System.currentTimeMillis();
 
         t.selectExpr(
-                        "ST_AreaSpheroid(geom) as area"
+                        "ST_Area(geom) as area"
                 )
                 .agg(expr("avg(area)"))
                 .show();

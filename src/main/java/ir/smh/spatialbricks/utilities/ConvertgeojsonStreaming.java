@@ -15,8 +15,8 @@ public class ConvertgeojsonStreaming {
 
     public static void main(String[] args) throws Exception {
 
-        File inputFile = new File("../datasets/portotaxi/portotaxi.geojson");
-        File outputFile = new File("../datasets/portotaxi2/portotaxindjson.geojson");
+        File inputFile = new File("../datasets/geometrycollection/postal_codes.geojson");
+        File outputFile = new File("../datasets/geometrycollection/ndjson2.geojson");
 
         ObjectMapper mapper = new ObjectMapper();
         JsonFactory factory = mapper.getFactory();

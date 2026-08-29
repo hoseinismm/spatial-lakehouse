@@ -1,12 +1,9 @@
 package ir.smh.spatialbricks.test_queries;
 
-import ir.smh.spatialbricks.udf.WKBIndexedParquet;
+import ir.smh.spatialbricks.udf.*;
 import ir.smh.spatialbricks.utilities.PowerPlanUtil;
 import ir.smh.spatialbricks.core.TableSpec;
 import ir.smh.spatialbricks.config.SparkConfigLocal;
-import ir.smh.spatialbricks.udf.FlattenSpatialParquet;
-import ir.smh.spatialbricks.udf.SpatialParquet;
-import ir.smh.spatialbricks.udf.UDFRegistry;
 import org.apache.sedona.spark.SedonaContext;
 import org.apache.sedona.sql.utils.SedonaSQLRegistrator;
 import org.apache.spark.sql.Dataset;
@@ -25,14 +22,19 @@ public class nyctaxi {
     private  static final SparkSession spark =   SparkConfigLocal.createSession("../datasets/nyc_taxi");
 
     private static final UDFRegistry<?, ?> wkbRegistry =
-            new WKBIndexedParquet(spark);
+            new WKB(spark);
 
     private static final UDFRegistry<?, ?> spatialRegistry =
-            new SpatialParquet(spark);
+            new SP(spark);
 
     private static final UDFRegistry<?, ?> flattenRegistry =
-            new FlattenSpatialParquet(spark);
+            new FSP(spark);
 
+    private static final UDFRegistry<?, ?> NFSPRegistry =
+            new NFSP(spark);
+
+    private static final UDFRegistry<?, ?> GeoLakeRegistry =
+            new GeoLake(spark);
 
     private static final TableSpec wkbUnindexed =
             new TableSpec("wkbUnindexed", "nyc_taxi", "");
@@ -54,6 +56,18 @@ public class nyctaxi {
 
     private static final TableSpec flattenSilverIndexedIncremental =
             new TableSpec("flattenSilverIndexedIncremental", "nyc_taxi", "");
+
+    private static final TableSpec NFSPUnindexed =
+            new TableSpec("NFSPUnindexed", "nyc_taxi", "");
+
+    private static final TableSpec NFSPIndexed =
+            new TableSpec("NFSPIndexed", "nyc_taxi", "");
+
+    private static final TableSpec GeoLakeUnindexed =
+            new TableSpec("GeoLakeUnindexed", "nyc_taxi", "");
+
+    private static final TableSpec GeoLakeIndexed =
+            new TableSpec("GeoLakeIndexed", "nyc_taxi", "");
 
     public static void main(String[] args) throws Exception {
 
@@ -83,7 +97,7 @@ public class nyctaxi {
 
     private static long[][] runBenchmarks( int runs) throws IOException {
 
-        long[][] results = new long[12][runs];
+        long[][] results = new long[18][runs];
 
         for (int i = 0; i < runs; i++) {
 
@@ -91,16 +105,23 @@ public class nyctaxi {
 
             results[0][i] = testQuery2(wkbUnindexed, GeometryFormat.WKB,false);
             results[1][i] = testQuery2(wkbIndexed, GeometryFormat.WKB,true);
-            results[2][i] =0;// testQuery2(silverUnindexed,GeometryFormat.SPATIAL,false);
-            results[3][i] =0;// testQuery2(silverIndexed,GeometryFormat.SPATIAL,true);
-            results[4][i] =0;// testQuery2(flattenSilverUnindexed,GeometryFormat.FLATTEN,false);
-            results[5][i] =0;// testQuery2(flattenSilverIndexed,GeometryFormat.FLATTEN,true);
-            results[6][i] =0;// testQuery(flattenSilverIndexedIncremental,GeometryFormat.FLATTEN,true);
-            results[7][i] =0;// testDecode2(silverUnindexed);
-            results[8][i] =0;// testDecode3(flattenSilverUnindexed);
-            results[9][i] =0;// testDecode(wkbUnindexed, wkbRegistry);
-            results[10][i] =0;// testDecode(silverUnindexed, spatialRegistry);
-            results[11][i] =0;// testDecode(flattenSilverUnindexed, flattenRegistry);
+            results[2][i] = testQuery2(silverUnindexed,GeometryFormat.SPATIAL,false);
+            results[3][i] = testQuery2(silverIndexed,GeometryFormat.SPATIAL,true);
+            results[4][i] = testQuery2(flattenSilverUnindexed,GeometryFormat.FLATTEN,false);
+            results[5][i] = testQuery2(flattenSilverIndexed,GeometryFormat.FLATTEN,true);
+            results[6][i] = testQuery2(NFSPUnindexed,GeometryFormat.NFSP,false);
+            results[7][i] = testQuery2(NFSPIndexed,GeometryFormat.NFSP,true);
+            results[8][i] = testQuery2(GeoLakeUnindexed,GeometryFormat.GeoLake,false);
+            results[9][i] = testQuery2(GeoLakeIndexed,GeometryFormat.GeoLake,true);
+            results[10][i] = testQuery2(flattenSilverIndexedIncremental,GeometryFormat.FLATTEN,true);
+            results[11][i] = testDecode2(silverUnindexed);
+            results[12][i] = testDecode3(flattenSilverUnindexed);
+            results[13][i] = testDecode(wkbUnindexed, wkbRegistry);
+            results[14][i] = testDecode(silverUnindexed, spatialRegistry);
+            results[15][i] = testDecode(flattenSilverUnindexed, flattenRegistry);
+            results[16][i] = testDecode(NFSPUnindexed, NFSPRegistry);
+            results[17][i] = testDecode(GeoLakeUnindexed, GeoLakeRegistry);
+
         }
 
         return results;
@@ -117,16 +138,21 @@ public class nyctaxi {
                 "Spatial Indexed",
                 "Flatten Unindexed",
                 "Flatten Indexed",
+                "NFSP Unindexed",
+                "NFSP Indexed",
+                "GeoLake Unindexed",
+                "GeoLake Indexed",
                 "Flatten Indexed Incremental",
                 "Spatial Decoded",
                 "Flatten Decoded",
                 "WKB Unindexed",
                 "Spatial Unindexed",
-                "Flatten Unindexed"
-
+                "Flatten Unindexed",
+                "NFSP Unindexed",
+                "GeoLake Unindexed"
         };
 
-        try (PrintWriter out = new PrintWriter("benchmark34_for_nyc_taxi6.csv")) {
+        try (PrintWriter out = new PrintWriter("../datasets/nyc_taxi/benchmark_new_nyc_taxi.csv")) {
 
             out.print("Test");
 
@@ -152,7 +178,9 @@ public class nyctaxi {
     enum GeometryFormat {
         WKB,
         SPATIAL,
-        FLATTEN
+        FLATTEN,
+        NFSP,
+        GeoLake
     }
 
 
@@ -162,6 +190,8 @@ public class nyctaxi {
             case WKB -> wkbRegistry.registerDecode();
             case SPATIAL -> spatialRegistry.registerDecode();
             case FLATTEN -> flattenRegistry.registerDecode();
+            case NFSP -> NFSPRegistry.registerDecode();
+            case GeoLake -> GeoLakeRegistry.registerDecode();
         }
 
         String fromClause;
@@ -247,6 +277,9 @@ public class nyctaxi {
             case WKB -> wkbRegistry.registerDecode();
             case SPATIAL -> spatialRegistry.registerDecode();
             case FLATTEN -> flattenRegistry.registerDecode();
+            case NFSP -> NFSPRegistry.registerDecode();
+            case GeoLake -> GeoLakeRegistry.registerDecode();
+
         }
 
         String fromClause;

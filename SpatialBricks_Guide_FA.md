@@ -203,8 +203,10 @@ Dataset<Row> t = spark.read()
 ```java
 import ir.smh.spatialbricks.udf.*;
 
-UDFRegistry<?,?> udfRegistry = new FlattenSpatialParquet(spark); // or SpatialParquet or WKBIndexedParquet
-udfRegistry.registerDecode();
+UDFRegistry<?, ?> udfRegistry = new FSP(spark); // or SpatialParquet or WKBIndexedParquet
+udfRegistry.
+
+registerDecode();
 ```
 
 #### مثال پرس‌و‌جو (Query):

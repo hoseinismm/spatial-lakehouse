@@ -1,7 +1,7 @@
 package ir.smh.spatialbricks.core;
 
 import ir.smh.spatialbricks.encoder.converttogeometry.GeometryReader;
-import ir.smh.spatialbricks.udf.SpatialParquet;
+import ir.smh.spatialbricks.udf.SP;
 import ir.smh.spatialbricks.udf.UDFRegistry;
 import ir.smh.spatialbricks.encoder.converttogeometry.WKBReaderAdapter;
 import org.apache.iceberg.Snapshot;
@@ -41,11 +41,11 @@ public class PipelineExecutor implements Serializable {
     }
 
     public PipelineExecutor(SparkSession spark) {
-        this( null,new SpatialParquet (spark));
+        this( null,new SP(spark));
     }
 
     public PipelineExecutor(SparkSession spark, GeometryReader<?> adapter) {
-        this(spark, adapter, new SpatialParquet (spark));
+        this(spark, adapter, new SP(spark));
     }
 
     public PipelineExecutor(SparkSession spark, UDFRegistry<?,?> udfRegistry) {

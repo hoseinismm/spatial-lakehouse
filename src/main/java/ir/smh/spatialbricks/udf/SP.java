@@ -16,15 +16,15 @@ import java.util.*;
 
 import static org.apache.spark.sql.functions.*;
 
-public class SpatialParquet implements UDFRegistry<Geometry,Map<String, Object>>, Serializable {
+public class SP implements UDFRegistry<Geometry,Map<String, Object>>, Serializable {
     SparkSession spark;
 
-    public SpatialParquet(SparkSession spark) {
+    public SP(SparkSession spark) {
         this.spark = spark;
     }
 
     public Map<String, Object> parse(Geometry geometry) {
-        return  ParseGeometryForSpatial.parseGeometry(geometry);
+        return  ParseGeometryForSP.parseGeometry(geometry);
     }
 
     // =========================================================
@@ -107,7 +107,7 @@ public class SpatialParquet implements UDFRegistry<Geometry,Map<String, Object>>
     public Row geometryToRow(Geometry geometry) {
 
         Map<String, Object> geom =
-                ParseGeometryForSpatial.parseGeometry(geometry);
+                ParseGeometryForSP.parseGeometry(geometry);
 
         int type =
                 (int) geom.get("type");

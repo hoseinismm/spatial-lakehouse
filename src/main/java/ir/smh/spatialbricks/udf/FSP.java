@@ -1,32 +1,38 @@
 package ir.smh.spatialbricks.udf;
 
 import ir.smh.spatialbricks.core.BucketManager;
-import ir.smh.spatialbricks.core.BucketManager.Bucket;
-import ir.smh.spatialbricks.decoder.WKBParquetDecoder;
+import ir.smh.spatialbricks.decoder.FlattenSpatialParquetDecoder;
+import ir.smh.spatialbricks.decoder.FlattenSpatialParquetDecoder3;
+import ir.smh.spatialbricks.decoder.FlattenSpatialParquetDecoder4;
+import ir.smh.spatialbricks.encoder.converttogeometry.*;
 import ir.smh.spatialbricks.encoder.GeometryResult;
-import ir.smh.spatialbricks.encoder.converttogeometry.GeometryReader;
-import ir.smh.spatialbricks.encoder.converttogeometry.WKBReaderAdapter;
-import ir.smh.spatialbricks.encoder.converttogeometry.WKTReaderAdapter;
-import ir.smh.spatialbricks.encoder.converttogeometry.GeoJsonGeometricalAdapter;
+
 import org.apache.spark.broadcast.Broadcast;
-import org.apache.spark.sql.*;
+import org.apache.spark.sql.Dataset;
+import org.apache.spark.sql.Row;
+import org.apache.spark.sql.RowFactory;
+import org.apache.spark.sql.SparkSession;
 import org.apache.spark.sql.api.java.UDF1;
 import org.apache.spark.sql.catalyst.expressions.GenericRowWithSchema;
 import org.apache.spark.sql.sedona_sql.UDT.GeometryUDT$;
-import org.apache.spark.sql.types.*;
-import org.locationtech.jts.geom.*;
-import org.locationtech.jts.io.ParseException;
-import org.locationtech.jts.io.WKBReader;
+import org.apache.spark.sql.types.DataType;
+import org.apache.spark.sql.types.DataTypes;
+import org.apache.spark.sql.types.StructField;
+import org.apache.spark.sql.types.StructType;
+import org.locationtech.jts.geom.Geometry;
 
 import java.io.Serializable;
+import java.util.List;
+import java.util.Map;
 
-import static ir.smh.spatialbricks.encoder.GeometryResult.lineFromMultiPoint;
 import static org.apache.spark.sql.functions.*;
+import static org.apache.spark.sql.functions.lit;
 
-public class WKBIndexedParquet implements UDFRegistry<byte[],byte[]>, Serializable {
+public class FSP implements UDFRegistry<Geometry,Map<String, Object>>, Serializable {
+
     SparkSession spark;
 
-    public WKBIndexedParquet(SparkSession spark) {
+    public FSP(SparkSession spark) {
         this.spark = spark;
     }
 
@@ -53,13 +59,18 @@ public class WKBIndexedParquet implements UDFRegistry<byte[],byte[]>, Serializab
 
     private  static StructType GEOMETRY_TYPE =
             DataTypes.createStructType(new StructField[]{
-                    DataTypes.createStructField("geom", DataTypes.BinaryType, false),
+                    DataTypes.createStructField("type", DataTypes.IntegerType, false),
+                    DataTypes.createStructField("x", DataTypes.createArrayType(DataTypes.DoubleType), false),
+                    DataTypes.createStructField("y", DataTypes.createArrayType(DataTypes.DoubleType), false),
+                    DataTypes.createStructField("parts", DataTypes.createArrayType(DataTypes.IntegerType), false),
                     DataTypes.createStructField("bbox_partitioning", BUCKET_SCHEMA, true)
             });
 
-    public byte[] parse(Geometry geometry) {
-        return  ParseGeometryForWKB.parseGeometry(geometry);
+    public Map<String, Object> parse(Geometry geometry) {
+        return  ParseGeometryForFSP.parseGeometry(geometry);
     }
+
+
 
     // =========================================================
     // 1) GEOMETRY ENCODER UDF
@@ -77,31 +88,22 @@ public class WKBIndexedParquet implements UDFRegistry<byte[],byte[]>, Serializab
 
             try {
 
-                byte[] geom;
                 Geometry geometry;
 
                 if (input instanceof byte[] && adapter instanceof WKBReaderAdapter) {
-                    geom = (byte[])input;
+                    geometry = ((WKBReaderAdapter) adapter).inputToGeometry((byte[]) input);
 
                 } else if (input instanceof String && adapter instanceof WKTReaderAdapter) {
                     geometry = ((WKTReaderAdapter) adapter).inputToGeometry((String) input);
-                    geom =
-                            ParseGeometryForWKB.parseGeometry(
-                                    geometry
-                            );
 
                 } else  if (input instanceof Geometry && adapter instanceof GeoJsonGeometricalAdapter) {
                     geometry = ((GeoJsonGeometricalAdapter) adapter).inputToGeometry((Geometry) input);
-                    geom =
-                            ParseGeometryForWKB.parseGeometry(
-                                    geometry
-                            );
 
                 } else {
                     throw new IllegalArgumentException("Unsupported input: " + input.getClass());
                 }
 
-                return geometryToRow(geom);
+                return geometryToRow(geometry);
 
             } catch (Exception e) {
                 System.err.println("Geometry UDF error: " + e.getMessage());
@@ -112,18 +114,24 @@ public class WKBIndexedParquet implements UDFRegistry<byte[],byte[]>, Serializab
         spark.udf().register("encodeGeometry", udf, GEOMETRY_TYPE);
     }
 
-    public Row geometryToRow(byte[] geom) {
+    public Row geometryToRow(Geometry geometry) {
+
+        Map<String, Object> geom =
+                ParseGeometryForFSP.parseGeometry(
+                        geometry
+                );
 
         return new GenericRowWithSchema(
                 new Object[]{
-                        geom,
+                        geom.get("type"),
+                        geom.get("x"),
+                        geom.get("y"),
+                        geom.get("parts"),
                         null
                 },
                 GEOMETRY_TYPE
         );
     }
-
-
 
     // =========================================================
     // 2) BBOX UDF
@@ -151,8 +159,8 @@ public class WKBIndexedParquet implements UDFRegistry<byte[],byte[]>, Serializab
     // 3) BUCKET UDF
     // =========================================================
 
-    public void registerBucketUdf(Broadcast<Bucket> broadcastRootBuckets) {
-        Bucket root =
+    public void registerBucketUdf(Broadcast<BucketManager.Bucket> broadcastRootBuckets) {
+        BucketManager.Bucket root =
                 broadcastRootBuckets.value();
 
         spark.udf().register(
@@ -186,19 +194,20 @@ public class WKBIndexedParquet implements UDFRegistry<byte[],byte[]>, Serializab
         );
     }
 
+
     // =========================================================
     // DECODE UDF
     // =========================================================
 
-    public Geometry geometryToJTS(Row geoRow) throws ParseException {
-        return WKBParquetDecoder.geometryToJTS(geoRow);
+    public Geometry geometryToJTS(Row geoRow) {
+        return FlattenSpatialParquetDecoder.geometryToJTS(geoRow);
     }
 
     public void registerDecode() {
 
         spark.udf().register(
                 "decodeGeometry",
-                (Row geoRow) -> WKBParquetDecoder.geometryToJTS(geoRow),
+                (Row geoRow) -> FlattenSpatialParquetDecoder4.geometryToJTS(geoRow),
                 GeometryUDT$.MODULE$
         );
     }
@@ -208,58 +217,19 @@ public class WKBIndexedParquet implements UDFRegistry<byte[],byte[]>, Serializab
         spark.udf().register(
                 "addgeohash",
                 (Row geoRow) -> {
+                    List<Double> x = geoRow.getList(geoRow.fieldIndex("x"));
+                    List<Double> y = geoRow.getList(geoRow.fieldIndex("y"));
 
-                    try {
-                        if (geoRow == null) return null;
-
-                        Object g = geoRow.get(0);
-                        if (g == null) return null;
-
-                        byte[] geom = (byte[]) g;
-
-                        Geometry geometry = new WKBReader().read(geom);
-
-                        if (geometry == null || geometry.isEmpty()) {
-                            return null;
-                        }
-
-                        Coordinate c = geometry.getCentroid().getCoordinate();
-
-                        if (c == null) return null;
-
-                        return GeometryResult.computeGeoHash(
-                                c.getX(),
-                                c.getY()
-                        );
-
-                    } catch (Exception e) {
-                        return null; // مهم برای Spark stability
-                    }
+                    return GeometryResult.computeGeoHash(
+                            x.get(0),
+                            y.get(0)
+                    );
                 },
-                DataTypes.StringType
+                DataTypes.StringType   // اگر خروجی Geohash رشته است
         );
     }
 
-    public void registerLineFromMultiPoint() {
-        spark.udf().register(
-                "multiPointToLine",
-                (Row geoRow) -> {
-                    Object g = geoRow.get(0);
-                    if (g == null) {
-                        return null;
-                    }
 
-                    try {
-                        byte[] geom = (byte[]) g;
-                        Geometry geometry = new WKBReader().read(geom);
-                        return lineFromMultiPoint(geometry);
-                    } catch (ParseException e) {
-                        return null;
-                    }
-                },
-                GeometryUDT$.MODULE$
-        );
-    }
 
     // =========================================================
     // CORE LOGIC (shared)
@@ -269,35 +239,32 @@ public class WKBIndexedParquet implements UDFRegistry<byte[],byte[]>, Serializab
 
         if (geometry == null) return null;
 
-        try {
-            Object wkb = geometry.get(0);
-            if (wkb == null) return null;
+        List<Double> x = geometry.getList(geometry.fieldIndex("x"));
+        List<Double> y = geometry.getList(geometry.fieldIndex("y"));
 
-            byte[] geom = (byte[]) wkb;
+        if (x == null || y == null || x.isEmpty()) return null;
 
-            Geometry g = new WKBReader().read(geom);
+        double minX = Double.POSITIVE_INFINITY;
+        double minY = Double.POSITIVE_INFINITY;
+        double maxX = Double.NEGATIVE_INFINITY;
+        double maxY = Double.NEGATIVE_INFINITY;
 
-            if (g.isEmpty()) {
-                return null;
-            }
+        for (int i = 0; i < x.size(); i++) {
 
-            Envelope env = g.getEnvelopeInternal();
+            double xi = x.get(i);
+            double yi = y.get(i);
 
-            return new double[] {
-                    env.getMinX(),
-                    env.getMinY(),
-                    env.getMaxX(),
-                    env.getMaxY()
-            };
-
-        } catch (Exception e) {
-
-            return null;
+            if (xi < minX) minX = xi;
+            if (yi < minY) minY = yi;
+            if (xi > maxX) maxX = xi;
+            if (yi > maxY) maxY = yi;
         }
+
+        return new double[]{minX, minY, maxX, maxY};
     }
 
-    private Bucket findBucket(
-            Bucket bucket,
+    private BucketManager.Bucket findBucket(
+            BucketManager.Bucket bucket,
             double minX,
             double minY,
             double maxX,
@@ -325,44 +292,44 @@ public class WKBIndexedParquet implements UDFRegistry<byte[],byte[]>, Serializab
         return bucket;
     }
 
-    public void registerCreatePointGeometry() {
-
-        GeometryFactory geometryFactory = new GeometryFactory();
-
-        spark.udf().register(
-                "createPointGeometry",
-                (Double x, Double y) -> {
-
-                    if (x == null || y == null) {
-                        return null;
-                    }
-
-                    Point point = geometryFactory.createPoint(
-                            new Coordinate(x, y)
-                    );
-
-                    return geometryToRow(
-                            ParseGeometryForWKB.parseGeometry(point)
-                    );
-                },
-                GEOMETRY_TYPE
-        );
-    }
-
     public Dataset<Row> addPointGeometryColumn(
             Dataset<Row> df,
             String xColumn,
             String yColumn,
             String geometryColumnName
-
     ) {
-        registerCreatePointGeometry();
-        return df.withColumn(
-                geometryColumnName,
-                callUDF(
-                        "createPointGeometry",
-                        col(xColumn),
-                        col(yColumn)
-                )).select(geometryColumnName);
+
+        StructType bboxType = new StructType()
+                .add("min_x", DataTypes.DoubleType, false)
+                .add("min_y", DataTypes.DoubleType, false)
+                .add("max_x", DataTypes.DoubleType, false)
+                .add("max_y", DataTypes.DoubleType, false)
+                .add("region_code", DataTypes.LongType, false);
+
+        return df
+                .withColumn(
+                        geometryColumnName,
+                        struct(
+                                lit(1).alias("type"),
+
+                                array(
+                                        col(xColumn)
+                                ).alias("x"),
+
+                                array(
+                                        col(yColumn)
+                                ).alias("y"),
+
+                                lit(null)
+                                        .cast(DataTypes.createArrayType(DataTypes.IntegerType))
+                                        .alias("parts"),
+
+                                lit(null)
+                                        .cast(bboxType)
+                                        .alias("bbox_partitioning")
+                        )
+                )
+                .select(geometryColumnName);
+
     }
 }

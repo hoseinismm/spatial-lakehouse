@@ -5,7 +5,7 @@ import org.locationtech.jts.geom.*;
 import java.util.*;
 
 
-public class ParseGeometryForSpatial {
+public class ParseGeometryForSP {
 
     private static Map<String, Double> coordToMap(Coordinate c) {
         Map<String, Double> map = new HashMap<>();

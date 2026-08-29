@@ -30,8 +30,6 @@ public class aubuildings {
 
             try {
 
-
-
                 TableSpec silverUnindexed = new TableSpec("silverUnindexed", "aubuildings", "");
                 TableSpec silverIndexed = new TableSpec("silverIndexed", "aubuildings", "");
                 TableSpec flattenSilverUnindexed = new TableSpec("flattenSilverUnindexed", "aubuildings", "");
@@ -40,8 +38,8 @@ public class aubuildings {
                 TableSpec wkbIndexed = new TableSpec("wkbIndexed", "aubuildings", "");
                 TableSpec NFSPUnindexed = new TableSpec("NFSPUnindexed", "aubuildings", "");
                 TableSpec NFSPIndexed = new TableSpec("NFSPIndexed", "aubuildings", "");
-
-
+                TableSpec GeoLakeUnindexed = new TableSpec("GeoLakeUnindexed", "aubuildings", "");
+                TableSpec GeoLakeIndexed = new TableSpec("GeoLakeIndexed", "aubuildings", "");
 
 
                 long[][] results = runBenchmarks(
@@ -54,7 +52,9 @@ public class aubuildings {
                         wkbUnindexed,
                         wkbIndexed,
                         NFSPUnindexed,
-                        NFSPIndexed
+                        NFSPIndexed,
+                        GeoLakeUnindexed,
+                        GeoLakeIndexed
                 );
 
             writeResults(results, runs);
@@ -89,10 +89,12 @@ public class aubuildings {
             TableSpec wkbUnindexed,
             TableSpec wkbIndexed,
             TableSpec NFSPUnindexed,
-            TableSpec NFSPIndexed
+            TableSpec NFSPIndexed,
+            TableSpec GeoLakeUnindexed,
+            TableSpec GeoLakeIndexed
             ) throws Exception {
 
-        long[][] results = new long[12][runs];
+        long[][] results = new long[15][runs];
 
         for (int i = 0; i < runs; i++) {
 
@@ -102,11 +104,17 @@ public class aubuildings {
             results[1][i] = 0;//testQuery(spark, wkbIndexed,true,new WKBIndexedParquet(spark));
             results[2][i] = 0;//testQuery(spark, silverUnindexed,false,new SpatialParquet(spark));
             results[3][i] = 0;//testQuery(spark, silverIndexed, true, new SpatialParquet(spark));
-            results[4][i] = testQuery(spark, NFSPUnindexed,false, new NFSP(spark) );
-            results[5][i] = testQuery(spark, NFSPIndexed, true, new NFSP(spark) );
-            results[6][i] = 0;//testDecode(spark, wkbUnindexed, new WKBIndexedParquet(spark));
-            results[7][i] = 0;//testDecode(spark, silverUnindexed, new SpatialParquet(spark));
-            results[8][i] = testDecode(spark, NFSPUnindexed, new NFSP(spark));
+            results[4][i] = 0;//testQuery(spark, flattenSilverUnindexed,false, new FlattenSpatialParquet(spark) );
+            results[5][i] = 0;//testQuery(spark, flattenSilverIndexed, true, new FlattenSpatialParquet(spark) );
+            results[6][i] = 0;//testQuery(spark, NFSPUnindexed,false, new NFSP(spark) );
+            results[7][i] = 0;//testQuery(spark, NFSPIndexed, true, new NFSP(spark) );
+            results[8][i] =0;// testQuery(spark, GeoLakeUnindexed,false, new GeoLake(spark) );
+            results[9][i] =0;// testQuery(spark, GeoLakeIndexed, true, new GeoLake(spark) );
+            results[10][i] = testDecode(spark, wkbUnindexed, new WKB(spark));
+            results[11][i] = testDecode(spark, silverUnindexed, new SP(spark));
+            results[12][i] = testDecode(spark, flattenSilverUnindexed, new FSP(spark));
+            results[13][i] =  testDecode(spark, NFSPUnindexed, new NFSP(spark));
+            results[14][i] = testDecode(spark, GeoLakeUnindexed, new GeoLake(spark));
 
         }
 
@@ -123,12 +131,18 @@ public class aubuildings {
                 "Spatial Indexed",
                 "Flatten Unindexed",
                 "Flatten Indexed",
+                "NFSP Unindexed",
+                "NFSP Indexed",
+                "GeoLake Unindexed",
+                "GeoLake Indexed",
                 "WKB Unindexed",
                 "Spatial Unindexed",
-                "Flatten Unindexed"
+                "Flatten Unindexed",
+                "NFSP Unindexed",
+                "GeoLake Unindexed",
         };
 
-        try (PrintWriter out = new PrintWriter("benchmarknfsp3_for_aubuildings.csv")) {
+        try (PrintWriter out = new PrintWriter("../datasets/aubuildings/benchmarkgeolake_for_aubuildings.csv")) {
 
             out.print("Test");
 

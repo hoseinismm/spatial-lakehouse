@@ -11,7 +11,6 @@ import org.apache.spark.sql.Column;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SparkSession;
-import org.apache.spark.sql.catalyst.analysis.NoSuchTableException;
 
 import java.io.FileNotFoundException;
 import java.io.PrintWriter;
@@ -47,13 +46,19 @@ public class portotaxi {
     private static final TableSpec NFSPIndexed =
             new TableSpec("NFSPIndexed", "portotaxi", "");
 
+    private static final TableSpec GeoLakeUnindexed =
+            new TableSpec("GeoLakeUnindexed", "portotaxi", "");
+
+    private static final TableSpec GeoLakeIndexed =
+            new TableSpec("GeoLakeIndexed", "portotaxi", "");
+
     public static void main(String[] args) throws Exception {
 
         PowerPlanUtil.setPowerPlan(PowerPlanUtil.SPARK_TEST);
 
         try {
 
-            int runs = 10;
+            int runs = 30;
 
             SparkSession spark = createSpark();
 
@@ -90,23 +95,27 @@ public class portotaxi {
             int runs
             ) throws Exception {
 
-        long[][] results = new long[11][runs];
+        long[][] results = new long[15][runs];
 
         for (int i = 0; i < runs; i++) {
 
             System.out.println("Run " + (i + 1));
 
-            results[0][i] =0;// testSpeedIndexed(wkbUnindexed, new WKBIndexedParquet(spark), false);
-            results[1][i] =0;// testSpeedIndexed(wkbIndexed, new WKBIndexedParquet(spark), true);
-            results[2][i] =0;// testSpeedIndexed(silverUnindexed, new SpatialParquet(spark), false);
-            results[3][i] =0;// testSpeedIndexed(silverIndexed, new SpatialParquet(spark), true);
-            results[4][i] =0;// testSpeedIndexed(flattenSilverUnindexed, new FlattenSpatialParquet(spark), false);
-            results[5][i] =0;// testSpeedIndexed(flattenSilverIndexed, new FlattenSpatialParquet(spark), true);
+            results[0][i] = testSpeedIndexed(wkbUnindexed, new WKB(spark), false);
+            results[1][i] = testSpeedIndexed(wkbIndexed, new WKB(spark), true);
+            results[2][i] = testSpeedIndexed(silverUnindexed, new SP(spark), false);
+            results[3][i] = testSpeedIndexed(silverIndexed, new SP(spark), true);
+            results[4][i] = testSpeedIndexed(flattenSilverUnindexed, new FSP(spark), false);
+            results[5][i] = testSpeedIndexed(flattenSilverIndexed, new FSP(spark), true);
             results[6][i] = testSpeedIndexed(NFSPUnindexed, new NFSP(spark), false);
             results[7][i] = testSpeedIndexed(NFSPIndexed, new NFSP(spark), true);
-            results[8][i] =0;// testConvertionToGeometry(wkbUnindexed,new WKBIndexedParquet(spark));
-            results[9][i] =0;// testConvertionToGeometry(silverUnindexed,new SpatialParquet(spark));
-            results[10][i] = testConvertionToGeometry(NFSPUnindexed,new FlattenSpatialParquet(spark));
+            results[8][i] = testSpeedIndexed(GeoLakeUnindexed, new GeoLake(spark), false);
+            results[9][i] = testSpeedIndexed(GeoLakeIndexed, new GeoLake(spark), true);
+            results[10][i] = testConvertionToGeometry(wkbUnindexed,new WKB(spark));
+            results[11][i] = testConvertionToGeometry(silverUnindexed,new SP(spark));
+            results[12][i] = testConvertionToGeometry(flattenSilverUnindexed,new FSP(spark));
+            results[13][i] = testConvertionToGeometry(NFSPUnindexed,new NFSP(spark));
+            results[14][i] = testConvertionToGeometry(GeoLakeUnindexed,new GeoLake(spark));
 
         }
         return results;
@@ -124,15 +133,18 @@ public class portotaxi {
                 "Flatten Indexed",
                 "NFSP Unindexed",
                 "NFSP Indexed",
+                "GeoLake Unindexed",
+                "GeoLake Indexed",
                 "WKB Unindexed",
                 "Spatial Unindexed",
                 "Flatten Unindexed",
-                "NFSP Unindexed"
+                "NFSP Unindexed",
+                "GeoLake Unindexed"
 
 
         };
 
-        try (PrintWriter out = new PrintWriter("benchmarkporto20.csv")) {
+        try (PrintWriter out = new PrintWriter("../datasets/portotaxi2/benchmarkporto_newall.csv")) {
 
             out.print("Test");
 

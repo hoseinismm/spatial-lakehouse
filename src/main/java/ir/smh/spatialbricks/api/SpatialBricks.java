@@ -42,9 +42,10 @@ public class SpatialBricks {
                 SparkSession spark) {
 
             return switch (format) {
-                case WKB -> new WKBIndexedParquet(spark);
-                case SP -> new SpatialParquet(spark);
-                case FSP -> new FlattenSpatialParquet(spark);
+                case WKB -> new WKB(spark);
+                case SP -> new SP(spark);
+                case FSP -> new FSP(spark);
+                case NFSP -> new NFSP(spark);
             };
         }
     }

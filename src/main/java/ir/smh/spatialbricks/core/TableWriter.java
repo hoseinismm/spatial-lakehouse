@@ -35,6 +35,12 @@ public class TableWriter {
                     silver.table(),
                     List.of("identity(geometry.bbox_partitioning.region_code)")
             );
+            spark.sql(""" 
+            ALTER TABLE %s SET TBLPROPERTIES
+            (
+             'write.parquet.row-group-check-min-record-count' = '1',
+              'write.parquet.row-group-check-max-record-count' = '30' )
+            """.formatted(fullName));
         } else {
 
             StructType tableSchema = spark.table(fullName).schema();
@@ -45,7 +51,6 @@ public class TableWriter {
                 );
             }
         }
-
         transformed.writeTo(fullName).append();
         System.out.println("Data appended to silver layer");
     }

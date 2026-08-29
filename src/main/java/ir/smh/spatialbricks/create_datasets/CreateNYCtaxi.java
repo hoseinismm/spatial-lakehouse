@@ -2,14 +2,11 @@ package ir.smh.spatialbricks.create_datasets;
 
 import ir.smh.spatialbricks.encoder.converttogeometry.GeometryReader;
 import ir.smh.spatialbricks.encoder.converttogeometry.WKBReaderAdapter;
-import ir.smh.spatialbricks.udf.NFSP;
-import ir.smh.spatialbricks.udf.WKBIndexedParquet;
+import ir.smh.spatialbricks.udf.*;
 import ir.smh.spatialbricks.utilities.PowerPlanUtil;
 import ir.smh.spatialbricks.core.PipelineExecutor;
 import ir.smh.spatialbricks.core.TableSpec;
 import ir.smh.spatialbricks.config.SparkConfigLocal;
-import ir.smh.spatialbricks.udf.FlattenSpatialParquet;
-import ir.smh.spatialbricks.udf.SpatialParquet;
 import org.apache.sedona.spark.SedonaContext;
 import org.apache.spark.sql.catalyst.analysis.NoSuchTableException;
 
@@ -36,13 +33,15 @@ public class CreateNYCtaxi {
 
         GeometryReader<?> geometryReader = new WKBReaderAdapter();
 
-        PipelineExecutor spatialWriting= new PipelineExecutor(spark, null, new SpatialParquet(spark));
+        PipelineExecutor spatialWriting= new PipelineExecutor(spark, null, new SP(spark));
 
-        PipelineExecutor flattenspatialwriting = new PipelineExecutor(spark, null, new FlattenSpatialParquet(spark));
+        PipelineExecutor flattenspatialwriting = new PipelineExecutor(spark, null, new FSP(spark));
 
-        PipelineExecutor wkbWriting = new PipelineExecutor(spark, null, new WKBIndexedParquet(spark));
+        PipelineExecutor wkbWriting = new PipelineExecutor(spark, null, new WKB(spark));
 
         PipelineExecutor NFSPWriting = new PipelineExecutor(spark, null, new NFSP(spark));
+
+        PipelineExecutor GeoLakeWriting = new PipelineExecutor(spark, null, new GeoLake(spark));
 
 
         TableSpec wkbUnindexed = new TableSpec("wkbUnindexed", "nyc_taxi", folderpath);
@@ -55,6 +54,8 @@ public class CreateNYCtaxi {
         TableSpec flattenSilverIndexedIncremental = new TableSpec("flattenSilverIndexedIncremental", "nyc_taxi",folderpath);
         TableSpec NFSPUnindexed = new TableSpec("NFSPUnindexed", "nyc_taxi", folderpath);
         TableSpec NFSPIndexed =  new TableSpec("NFSPIndexed", "nyc_taxi", folderpath);
+        TableSpec GeoLakeUnindexed = new TableSpec("GeoLakeUnindexed", "nyc_taxi", folderpath);
+        TableSpec GeoLakeIndexed =  new TableSpec("GeoLakeIndexed", "nyc_taxi", folderpath);
 
 
         String path =   "../datasets/nyc_taxi/yellow_tripdata_2009-0?.parquet";
@@ -77,10 +78,15 @@ public class CreateNYCtaxi {
 
 //        flattenspatialwriting.xyToPintTableWithIndexing(flattenSilverIndexed,path,150000L, 131072L, "Start_Lon","Start_Lat");
 //        flattenspatialwriting.xyToPintTableWithIndexing(flattenSilverIndexed,path,150000L, 131072L, "End_Lon","End_Lat");
-        NFSPWriting.xyToPintTableWithIndexing(NFSPIndexed,path,150000L, 131072L, "Start_Lon","Start_Lat");
-        NFSPWriting.xyToPintTableWithIndexing(NFSPIndexed,path,150000L, 131072L, "End_Lon","End_Lat");
+//        NFSPWriting.xyToPintTableWithIndexing(NFSPIndexed,path,150000L, 131072L, "Start_Lon","Start_Lat");
+//        NFSPWriting.xyToPintTableWithIndexing(NFSPIndexed,path,150000L, 131072L, "End_Lon","End_Lat");
 //        NFSPWriting.xyToPointTableWithoutIndexing(NFSPUnindexed,path, "Start_Lon","Start_Lat");
 //        NFSPWriting.xyToPointTableWithoutIndexing(NFSPUnindexed,path, "End_Lon","End_Lat");
+//        GeoLakeWriting.xyToPintTableWithIndexing(GeoLakeIndexed,path,150000L, 131072L, "Start_Lon","Start_Lat");
+//        GeoLakeWriting.xyToPintTableWithIndexing(GeoLakeIndexed,path,150000L, 131072L, "End_Lon","End_Lat");
+        GeoLakeWriting.xyToPointTableWithoutIndexing(GeoLakeUnindexed,path, "Start_Lon","Start_Lat");
+        GeoLakeWriting.xyToPointTableWithoutIndexing(GeoLakeUnindexed,path, "End_Lon","End_Lat");
+
 //                Table table = Spark3Util.loadIcebergTable(
 //                        spark,
 //                        "flattenSilverIndexed.nyc_taxi");
